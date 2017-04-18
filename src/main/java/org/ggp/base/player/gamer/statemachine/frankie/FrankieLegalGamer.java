@@ -8,7 +8,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public class FrankieLegalPlayer extends FrankieGamer {
+public class FrankieLegalGamer extends FrankieGamer {
 
 	@Override
 	public Move stateMachineSelectMove(long timeout)
