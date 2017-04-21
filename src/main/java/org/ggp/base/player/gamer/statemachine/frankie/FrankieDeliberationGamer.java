@@ -14,7 +14,7 @@ import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
 public class FrankieDeliberationGamer extends FrankieGamer {
 
-	private int maxScore(Role role, MachineState state, StateMachine stateMachine)
+	private int maxScoreDeliberation(Role role, MachineState state, StateMachine stateMachine)
 			throws GoalDefinitionException, MoveDefinitionException, TransitionDefinitionException{
 		if (stateMachine.isTerminal(state)) {
 			return stateMachine.getGoal(state, role);
@@ -27,7 +27,7 @@ public class FrankieDeliberationGamer extends FrankieGamer {
 			moveList.add(move);
 			MachineState nextState = stateMachine.getNextState(state, moveList);
 
-			int result = maxScore(role, nextState, stateMachine);
+			int result = maxScoreDeliberation(role, nextState, stateMachine);
 			if (result > score) {
 				score = result;
 			}
@@ -57,7 +57,7 @@ public class FrankieDeliberationGamer extends FrankieGamer {
 			moveList.add(move);
 			MachineState nextState = stateMachine.getNextState(getCurrentState(), moveList);
 
-			int result = maxScore(getRole(), nextState, stateMachine);
+			int result = maxScoreDeliberation(getRole(), nextState, stateMachine);
 			System.out.println("Maxscore: "+result);
 			if (result == 100) {
 				action = move;
