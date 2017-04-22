@@ -41,7 +41,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		// Configure Settings
 		// TODO: Learn this from experience
-		single_player_max_search_depth = 15;	// 0 indicates no maximum
+		single_player_max_search_depth = 10;	// 0 indicates no maximum
 		multi_player_max_search_depth = 10;
 		buffer = 2000;
 
@@ -60,17 +60,24 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	}
 
 	// ----- Heuristic Functions ----- //
-	private int evalFn(Role role, MachineState state) {
-
-		return 0;
+	private int evalFn(Role role, MachineState state) throws MoveDefinitionException {
+		int heuristic_value = focus(role, state);
+		System.out.println("EvalFn: " + heuristic_value);
+		return heuristic_value;
 	}
 
+	// One step mobility function
 	private int mobility(Role role, MachineState state) throws MoveDefinitionException {
-		List<Move> actions = stateMachine.getLegalMoves(state, role);
-
+		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
+		List<Move> all_actions = stateMachine.findActions(role);
+		return legal_actions.size()/all_actions.size() * 100;
 	}
 
-
+	private int focus(Role role, MachineState state) throws MoveDefinitionException {
+		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
+		List<Move> all_actions = stateMachine.findActions(role);
+		return 100 - legal_actions.size()/all_actions.size() * 100;
+	}
 
 	// ----- Helper Functions ----- //
 	private Role nextRole(Role currentRole) {
@@ -196,7 +203,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			return stateMachine.getGoal(state, role);
 		}
 		if (depth >= single_player_max_search_depth) {
-			return 0;
+			return evalFn(role, state);
 		}
 		if (isOutOfTime()) {
 			return 0;
