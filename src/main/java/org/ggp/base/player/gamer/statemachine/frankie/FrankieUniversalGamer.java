@@ -20,8 +20,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private Role agent;
 	private List<Role> roles;
 	private int numRoles;
+	private int single_player_max_search_depth;
+	private int multi_player_max_search_depth;
 	private boolean isSinglePlayer;
 	private StateMachine stateMachine;
+	private long finishBy;
+	private long buffer;
 
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
@@ -34,6 +38,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		agent = getRole();
 		roles = stateMachine.getRoles();
 		numRoles = roles.size();
+
+		// Configure Settings
+		// TODO: Learn this from experience
+		single_player_max_search_depth = 15;	// 0 indicates no maximum
+		multi_player_max_search_depth = 10;
+		buffer = 2000;
 
 		// Determine if game is single-player or multi-player
 		if(roles.size() > 1){
@@ -49,8 +59,21 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		// TODO: Determine if game is zero-sum
 	}
 
+	// ----- Heuristic Functions ----- //
+	private int evalFn(Role role, MachineState state) {
+
+		return 0;
+	}
+
+	private int mobility(Role role, MachineState state) throws MoveDefinitionException {
+		List<Move> actions = stateMachine.getLegalMoves(state, role);
+
+	}
+
+
+
 	// ----- Helper Functions ----- //
-	private Role nextRole(Role currentRole){
+	private Role nextRole(Role currentRole) {
 		int curRoleIndex = roleMap.get(currentRole);
 		int nextRoleIndex = (curRoleIndex + 1)%numRoles;
 		return roles.get(nextRoleIndex);
@@ -64,14 +87,15 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		return selected_moves;
 	}
 
-	private boolean isOutOfTime(long start, long finishBy){
+	// TODO: make sure this is correct. I could have the finishBy value interpreted incorrectly
+	private boolean isOutOfTime(){
 		long currentTime = System.currentTimeMillis();
-		if(currentTime > start + finishBy) return true;
+		if(currentTime > finishBy) return true;
 		else return false;
 	}
 
 	// ----- Alpha Beta Pruning ----- //
-	private int minScoreAlphaBeta(Role role, List<Move> selected_moves, MachineState state, StateMachine stateMachine, int alpha, int beta)
+	private int minScoreAlphaBeta(Role role, List<Move> selected_moves, MachineState state, int alpha, int beta, int depth)
 			throws GoalDefinitionException, MoveDefinitionException, TransitionDefinitionException{
 		List<Move> moves = stateMachine.getLegalMoves(state, role);
 
@@ -81,26 +105,35 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 			if(nextRole(role).equals(agent)){
 				MachineState nextState = stateMachine.getNextState(state, selected_moves);
-				result = maxScoreAlphaBeta(agent, nextState, stateMachine, alpha, beta);
+				result = maxScoreAlphaBeta(agent, nextState, alpha, beta, depth + 1);
 			}
 			else{
-				result = minScoreAlphaBeta(nextRole(role), selected_moves, state, stateMachine, alpha, beta);
+				result = minScoreAlphaBeta(nextRole(role), selected_moves, state, alpha, beta, depth);
 			}
 
 			beta = java.lang.Math.min(beta, result);
+			if(beta == 0) {
+				return beta;
+			}
 			if (beta <= alpha){
 				return alpha;
 			}
-
 		}
 		return beta;
 	}
 
-	private int maxScoreAlphaBeta(Role role, MachineState state, StateMachine stateMachine, int alpha, int beta)
+	private int maxScoreAlphaBeta(Role role, MachineState state, int alpha, int beta, int depth)
 			throws GoalDefinitionException, MoveDefinitionException, TransitionDefinitionException{
 		if (stateMachine.isTerminal(state)) {
 			return stateMachine.getGoal(state, role);
 		}
+		if (depth >= multi_player_max_search_depth) {
+			return evalFn(role, state);
+		}
+		if (isOutOfTime()) {
+			return 0;
+		}
+
 		List<Move> moves = stateMachine.getLegalMoves(state, role);
 
 		for(Move move : moves) {
@@ -108,9 +141,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			List<Move> selected_moves = initListWithMove(move);
 			selected_moves.set(roleMap.get(agent), move);
 
-			int result = minScoreAlphaBeta(nextRole(role), selected_moves, state, stateMachine, alpha, beta);
+			int result = minScoreAlphaBeta(nextRole(role), selected_moves, state, alpha, beta, depth);
 			alpha = java.lang.Math.max(alpha, result);
 
+			if(alpha == 100){
+				return alpha;
+			}
 			if (alpha >= beta) {
 				return beta;
 			}
@@ -118,7 +154,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		return alpha;
 	}
 
-	private Move alphaBeta(long start, long finishBy, List<Move> moves)
+	private Move alphaBeta(List<Move> moves)
 			throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException {
 
 		Move action = moves.get(0);
@@ -131,7 +167,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			int alpha = 0;
 			int beta = 100;
 			selected_moves.set(roleMap.get(agent), move);
-			int result = minScoreAlphaBeta(nextRole(agent), selected_moves, getCurrentState(), stateMachine, alpha, beta);
+			int result = minScoreAlphaBeta(nextRole(agent), selected_moves, getCurrentState(), alpha, beta, 0);
 
 			if (result == 100) {
 				action = move;
@@ -142,8 +178,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 				action = move;
 			}
 
-			// Return early if out of time (TODO: Improve this)
-			if(isOutOfTime(start, finishBy)) {
+			// Return early if out of time
+			if(isOutOfTime()) {
 				System.out.println("Out of time! Returning best action so far.");
 				return action;
 			}
@@ -153,11 +189,17 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	}
 
 	// ----- Compulsive Deliberation ----- //
-	private int maxScoreDeliberation(Role role, MachineState state, StateMachine stateMachine)
+	private int maxScoreDeliberation(Role role, MachineState state, int depth)
 			throws GoalDefinitionException, MoveDefinitionException, TransitionDefinitionException{
 
 		if (stateMachine.isTerminal(state)) {
 			return stateMachine.getGoal(state, role);
+		}
+		if (depth >= single_player_max_search_depth) {
+			return 0;
+		}
+		if (isOutOfTime()) {
+			return 0;
 		}
 
 		List<Move> moves = stateMachine.getLegalMoves(state, role);
@@ -168,11 +210,11 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			moveList.add(move);
 			MachineState nextState = stateMachine.getNextState(state, moveList);
 
-			int result = maxScoreDeliberation(role, nextState, stateMachine);
+			int result = maxScoreDeliberation(role, nextState, depth + 1);
 
 			if (result == 100) {
 				score = result;
-				break;
+				return score;
 			}
 			if (result > score) {
 				score = result;
@@ -182,7 +224,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		return score;
 	}
 
-	private Move compulsiveDeliberation(long start, long finishBy, List<Move> moves)
+	private Move compulsiveDeliberation(List<Move> moves)
 			throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException  {
 		assert(stateMachine.getRoles().size() == 1);
 
@@ -196,11 +238,11 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			moveList.add(move);
 			MachineState nextState = stateMachine.getNextState(getCurrentState(), moveList);
 
-			int result = maxScoreDeliberation(getRole(), nextState, stateMachine);
+			int result = maxScoreDeliberation(getRole(), nextState, 0);
 
 			if (result == 100) {
 				action = move;
-				break;
+				return action;
 			}
 			if (result > score) {
 				score = result;
@@ -208,7 +250,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			}
 
 			// Return early if out of time
-			if(isOutOfTime(start, finishBy)) {
+			if(isOutOfTime()) {
 				System.out.println("Out of time! Returning best action so far.");
 				return action;
 			}
@@ -224,7 +266,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		StateMachine stateMachine = getStateMachine();
 		long start = System.currentTimeMillis();	// Start timer
-		long finishBy = timeout - 1000;
+		finishBy = timeout - buffer;
+
 
 		List<Move> moves = stateMachine.getLegalMoves(getCurrentState(), getRole());
 		moves = new ArrayList<Move>(moves);
@@ -232,9 +275,9 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		Move action = moves.get(0);
 		if(isSinglePlayer){
-			action = compulsiveDeliberation(start, finishBy, moves);
+			action = compulsiveDeliberation(moves);
 		} else {
-			action = alphaBeta(start, finishBy, moves);
+			action = alphaBeta(moves);
 		}
 
 		long stop = System.currentTimeMillis();		// Stop timer
