@@ -20,9 +20,9 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private Role agent;
 	private List<Role> roles;
 	private int numRoles;
-	private int single_player_max_search_depth;
-	private int multi_player_max_search_depth;
+	private int iterative_deepening_search_depth;
 	private boolean isSinglePlayer;
+	private boolean did_timeout;
 	private StateMachine stateMachine;
 	private long finishBy;
 	private long buffer;
@@ -41,9 +41,10 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		// Configure Settings
 		// TODO: Learn this from experience
-		single_player_max_search_depth = 10;	// 0 indicates no maximum
-		multi_player_max_search_depth = 10;
-		buffer = 2000;
+		iterative_deepening_search_depth = 8;	// 0 indicates no maximum
+
+
+		buffer = 4000;
 
 		// Determine if game is single-player or multi-player
 		if(roles.size() > 1){
@@ -61,13 +62,18 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 	// ----- Heuristic Functions ----- //
 	private int evalFn(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
-		int focus_value = focus(role, state);
+		//int focus_value = focus(role, state);
 		int mobility_value = mobility(role,state);
-		int opp_mobility_value = mobility_value;
-		if (!isSinglePlayer)
-			opp_mobility_value = oppMobility(role,state);
-		int goal_prox_value = 0;//goalProx(role,state);
-		int heuristic_value = (int) (0*focus_value + 1*mobility_value + 0*opp_mobility_value + 0*goal_prox_value);
+		//int opp_mobility_value = mobility_value;
+		//int opp_focus_value = focus_value;
+		/*
+		if (!isSinglePlayer) {
+			//opp_mobility_value = oppMobility(role,state);
+			opp_focus_value = oppFocus(role, state);
+		}
+		*/
+		//int goal_prox_value = 0;	//goalProx(role,state);
+		int heuristic_value = (int) (1*mobility_value);
 		//System.out.println("EvalFn: " + heuristic_value);
 		return heuristic_value;
 	}
@@ -77,6 +83,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
 		List<Move> all_actions = stateMachine.findActions(role);
 		return legal_actions.size()/all_actions.size() * 100;
+	}
+
+	private int focus(Role role, MachineState state) throws MoveDefinitionException {
+		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
+		List<Move> all_actions = stateMachine.findActions(role);
+		return 100 - legal_actions.size()/all_actions.size() * 100;
 	}
 
 	private int oppMobility(Role role, MachineState state) throws MoveDefinitionException {
@@ -89,6 +101,18 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			total_all_actions = total_all_actions + stateMachine.findActions(r).size();
 		}
 		return total_legal_actions/total_all_actions * 100;
+	}
+
+	private int oppFocus(Role role, MachineState state) throws MoveDefinitionException {
+		int total_legal_actions = 0;
+		int total_all_actions = 0;
+		for (Role r : roles){
+			if (r.equals(role))
+				continue;
+			total_legal_actions = total_legal_actions + stateMachine.getLegalMoves(state, r).size();
+			total_all_actions = total_all_actions + stateMachine.findActions(r).size();
+		}
+		return 100 - total_legal_actions/total_all_actions * 100;
 	}
 
 	private int goalProx(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
@@ -114,12 +138,6 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		}
 	}
 
-	private int focus(Role role, MachineState state) throws MoveDefinitionException {
-		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
-		List<Move> all_actions = stateMachine.findActions(role);
-		return 100 - legal_actions.size()/all_actions.size() * 100;
-	}
-
 	// ----- Helper Functions ----- //
 	private Role nextRole(Role currentRole) {
 		int curRoleIndex = roleMap.get(currentRole);
@@ -135,10 +153,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		return selected_moves;
 	}
 
-	// TODO: make sure this is correct. I could have the finishBy value interpreted incorrectly
 	private boolean isOutOfTime(){
 		long currentTime = System.currentTimeMillis();
-		if(currentTime > finishBy) return true;
+		if(currentTime > finishBy) {
+			did_timeout = true;
+			return true;
+		}
 		else return false;
 	}
 
@@ -170,7 +190,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		if (stateMachine.isTerminal(state)) {
 			return stateMachine.getGoal(state, role);
 		}
-		if (depth >= multi_player_max_search_depth) {
+		if (depth >= iterative_deepening_search_depth) {
 			return evalFn(role, state);
 		}
 		if (isOutOfTime()) {
@@ -234,7 +254,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		if (stateMachine.isTerminal(state)) {
 			return stateMachine.getGoal(state, role);
 		}
-		if (depth >= single_player_max_search_depth) {
+		if (depth >= iterative_deepening_search_depth) {
 			return evalFn(role, state);
 		}
 		if (isOutOfTime()) {
@@ -307,17 +327,33 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		long start = System.currentTimeMillis();	// Start timer
 		finishBy = timeout - buffer;
 
+		did_timeout = false;
 
+		// Get randomized list of moves
 		List<Move> moves = stateMachine.getLegalMoves(getCurrentState(), getRole());
 		moves = new ArrayList<Move>(moves);
 		Collections.shuffle(moves);	// Randomize move order
 
+		// Select an Action
 		Move action = moves.get(0);
 		if(isSinglePlayer){
 			action = compulsiveDeliberation(moves);
 		} else {
 			action = alphaBeta(moves);
 		}
+
+		// Iterative Deepening
+		if(moves.size() != 1){	// Only increase depth if it was our turn
+			if(!did_timeout){
+				iterative_deepening_search_depth += 1;
+				System.out.println("Set search depth to: " + iterative_deepening_search_depth);
+			}
+			else {	//There was a timeout
+				iterative_deepening_search_depth -= 1;
+				System.out.println("Out of time! Set search depth to: " + iterative_deepening_search_depth);
+			}
+		}
+
 
 		long stop = System.currentTimeMillis();		// Stop timer
 
