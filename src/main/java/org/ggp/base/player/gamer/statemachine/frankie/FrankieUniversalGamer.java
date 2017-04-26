@@ -60,9 +60,15 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	}
 
 	// ----- Heuristic Functions ----- //
-	private int evalFn(Role role, MachineState state) throws MoveDefinitionException {
-		int heuristic_value = focus(role, state);
-		System.out.println("EvalFn: " + heuristic_value);
+	private int evalFn(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
+		int focus_value = focus(role, state);
+		int mobility_value = mobility(role,state);
+		int opp_mobility_value = mobility_value;
+		if (!isSinglePlayer)
+			opp_mobility_value = oppMobility(role,state);
+		int goal_prox_value = 0;//goalProx(role,state);
+		int heuristic_value = (int) (0*focus_value + 1*mobility_value + 0*opp_mobility_value + 0*goal_prox_value);
+		//System.out.println("EvalFn: " + heuristic_value);
 		return heuristic_value;
 	}
 
@@ -71,6 +77,41 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
 		List<Move> all_actions = stateMachine.findActions(role);
 		return legal_actions.size()/all_actions.size() * 100;
+	}
+
+	private int oppMobility(Role role, MachineState state) throws MoveDefinitionException {
+		int total_legal_actions = 0;
+		int total_all_actions = 0;
+		for (Role r : roles){
+			if (r.equals(role))
+				continue;
+			total_legal_actions = total_legal_actions + stateMachine.getLegalMoves(state, r).size();
+			total_all_actions = total_all_actions + stateMachine.findActions(r).size();
+		}
+		return total_legal_actions/total_all_actions * 100;
+	}
+
+	private int goalProx(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
+//		MachineState terminalState = stateMachine.performDepthCharge(state, new int[1]);
+//		int terminalReward = 0;
+//		try{
+//			terminalReward = stateMachine.findReward(role, terminalState);
+//		}
+//		catch (GoalDefinitionException e){
+//			System.out.println("weird");
+//		}
+//		Set<GdlSentence> terminalGDL = terminalState.getContents();
+//		Set<GdlSentence> currentGDL = state.getContents();
+//		Set<GdlSentence> missingGDL = terminalGDL;
+//		missingGDL.removeAll(currentGDL);
+//		float fracTerm = (terminalGDL.size()-missingGDL.size())/terminalGDL.size();
+//		return (int) (terminalReward * fracTerm);
+		try{
+			return stateMachine.findReward(role, state);
+		}
+		catch (GoalDefinitionException e){
+			return 0;
+		}
 	}
 
 	private int focus(Role role, MachineState state) throws MoveDefinitionException {
@@ -102,21 +143,16 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	}
 
 	// ----- Alpha Beta Pruning ----- //
-	private int minScoreAlphaBeta(Role role, List<Move> selected_moves, MachineState state, int alpha, int beta, int depth)
+	private int minScoreAlphaBeta(Move agentMove, MachineState state, int alpha, int beta, int depth)
 			throws GoalDefinitionException, MoveDefinitionException, TransitionDefinitionException{
-		List<Move> moves = stateMachine.getLegalMoves(state, role);
 
-		for(Move move : moves) {
-			selected_moves.set(roleMap.get(role), move);
+		List<List<Move>> all_legal_moves = stateMachine.getLegalJointMoves(state, agent, agentMove);
+
+		for(List<Move> moves : all_legal_moves) {
 			int result = 0;
 
-			if(nextRole(role).equals(agent)){
-				MachineState nextState = stateMachine.getNextState(state, selected_moves);
-				result = maxScoreAlphaBeta(agent, nextState, alpha, beta, depth + 1);
-			}
-			else{
-				result = minScoreAlphaBeta(nextRole(role), selected_moves, state, alpha, beta, depth);
-			}
+			MachineState nextState = stateMachine.getNextState(state, moves);
+			result = maxScoreAlphaBeta(agent, nextState, alpha, beta, depth + 1);
 
 			beta = java.lang.Math.min(beta, result);
 			if(beta == 0) {
@@ -145,10 +181,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		for(Move move : moves) {
 
-			List<Move> selected_moves = initListWithMove(move);
-			selected_moves.set(roleMap.get(agent), move);
-
-			int result = minScoreAlphaBeta(nextRole(role), selected_moves, state, alpha, beta, depth);
+			int result = minScoreAlphaBeta(move, state, alpha, beta, depth);
 			alpha = java.lang.Math.max(alpha, result);
 
 			if(alpha == 100){
@@ -165,7 +198,6 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException {
 
 		Move action = moves.get(0);
-		List<Move> selected_moves = initListWithMove(action);
 
 		// Go through all of the legal moves
 		int score = 0;
@@ -173,8 +205,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 			int alpha = 0;
 			int beta = 100;
-			selected_moves.set(roleMap.get(agent), move);
-			int result = minScoreAlphaBeta(nextRole(agent), selected_moves, getCurrentState(), alpha, beta, 0);
+
+			int result = minScoreAlphaBeta(move, getCurrentState(), alpha, beta, 0);
 
 			if (result == 100) {
 				action = move;
