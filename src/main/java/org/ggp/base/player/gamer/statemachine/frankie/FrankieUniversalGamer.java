@@ -26,6 +26,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private StateMachine stateMachine;
 	private long finishBy;
 	private long buffer;
+	private FrankieEvaluationFunction evalFn;
 
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
@@ -41,118 +42,34 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		// Configure Settings
 		// TODO: Learn this from experience
-		iterative_deepening_search_depth = 8;	// 0 indicates no maximum
+		// TODO: Set search depth based on initial branching factor
+		buffer = 3000;
 
-
-		buffer = 4000;
-
-		// Determine if game is single-player or multi-player
+		// Determine if game is single-player or multi-player and init heuristics
 		if(roles.size() > 1){
 			isSinglePlayer = false;
 			System.out.println("Multi-Player Game");
+			iterative_deepening_search_depth = 3;
 		}
 		else if(roles.size() == 1){
 			isSinglePlayer = true;
 			System.out.println("Single-Player Game");
+			iterative_deepening_search_depth = 6;
 		}
 		else assert(true);
 
-		// TODO: Determine if game is zero-sum
-	}
-
-	// ----- Heuristic Functions ----- //
-	private int evalFn(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
-		//int focus_value = focus(role, state);
-		int mobility_value = mobility(role,state);
-		//int opp_mobility_value = mobility_value;
-		//int opp_focus_value = focus_value;
-		/*
-		if (!isSinglePlayer) {
-			//opp_mobility_value = oppMobility(role,state);
-			opp_focus_value = oppFocus(role, state);
-		}
-		*/
-		//int goal_prox_value = 0;	//goalProx(role,state);
-		int heuristic_value = (int) (1*mobility_value);
-		//System.out.println("EvalFn: " + heuristic_value);
-		return heuristic_value;
-	}
-
-	// One step mobility function
-	private int mobility(Role role, MachineState state) throws MoveDefinitionException {
-		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
-		List<Move> all_actions = stateMachine.findActions(role);
-		return legal_actions.size()/all_actions.size() * 100;
-	}
-
-	private int focus(Role role, MachineState state) throws MoveDefinitionException {
-		List<Move> legal_actions = stateMachine.getLegalMoves(state, role);
-		List<Move> all_actions = stateMachine.findActions(role);
-		return 100 - legal_actions.size()/all_actions.size() * 100;
-	}
-
-	private int oppMobility(Role role, MachineState state) throws MoveDefinitionException {
-		int total_legal_actions = 0;
-		int total_all_actions = 0;
-		for (Role r : roles){
-			if (r.equals(role))
-				continue;
-			total_legal_actions = total_legal_actions + stateMachine.getLegalMoves(state, r).size();
-			total_all_actions = total_all_actions + stateMachine.findActions(r).size();
-		}
-		return total_legal_actions/total_all_actions * 100;
-	}
-
-	private int oppFocus(Role role, MachineState state) throws MoveDefinitionException {
-		int total_legal_actions = 0;
-		int total_all_actions = 0;
-		for (Role r : roles){
-			if (r.equals(role))
-				continue;
-			total_legal_actions = total_legal_actions + stateMachine.getLegalMoves(state, r).size();
-			total_all_actions = total_all_actions + stateMachine.findActions(r).size();
-		}
-		return 100 - total_legal_actions/total_all_actions * 100;
-	}
-
-	private int goalProx(Role role, MachineState state) throws MoveDefinitionException, GoalDefinitionException, TransitionDefinitionException {
-//		MachineState terminalState = stateMachine.performDepthCharge(state, new int[1]);
-//		int terminalReward = 0;
-//		try{
-//			terminalReward = stateMachine.findReward(role, terminalState);
-//		}
-//		catch (GoalDefinitionException e){
-//			System.out.println("weird");
-//		}
-//		Set<GdlSentence> terminalGDL = terminalState.getContents();
-//		Set<GdlSentence> currentGDL = state.getContents();
-//		Set<GdlSentence> missingGDL = terminalGDL;
-//		missingGDL.removeAll(currentGDL);
-//		float fracTerm = (terminalGDL.size()-missingGDL.size())/terminalGDL.size();
-//		return (int) (terminalReward * fracTerm);
-		try{
-			return stateMachine.findReward(role, state);
-		}
-		catch (GoalDefinitionException e){
-			return 0;
-		}
+		// Set up heuristics
+		List<FrankieHeuristic> heuristics = new ArrayList<FrankieHeuristic>();
+		heuristics.add( new MonteCarloHeuristic(1, 4) );
+		heuristics.add( new GoalProximityHeuristic(0) );
+		heuristics.add( new AgentMobilityHeuristic(0) );
+		heuristics.add( new OppMobilityHeuristic(0) );
+		heuristics.add( new AgentFocusHeuristic(0) );
+		heuristics.add( new OppFocusHeuristic(0) );
+		evalFn = new FrankieEvaluationFunction(stateMachine, heuristics);
 	}
 
 	// ----- Helper Functions ----- //
-	private Role nextRole(Role currentRole) {
-		int curRoleIndex = roleMap.get(currentRole);
-		int nextRoleIndex = (curRoleIndex + 1)%numRoles;
-		return roles.get(nextRoleIndex);
-	}
-
-	private List<Move> initListWithMove(Move action) {
-		List<Move> selected_moves = new ArrayList<Move>(numRoles);
-		for (int i=0; i<numRoles; i++){
-			selected_moves.add(action);
-		}
-		return selected_moves;
-	}
-
 	private boolean isOutOfTime(){
 		long currentTime = System.currentTimeMillis();
 		if(currentTime > finishBy) {
@@ -191,7 +108,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			return stateMachine.getGoal(state, role);
 		}
 		if (depth >= iterative_deepening_search_depth) {
-			return evalFn(role, state);
+			return evalFn.value(role, state);
 		}
 		if (isOutOfTime()) {
 			return 0;
@@ -255,7 +172,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			return stateMachine.getGoal(state, role);
 		}
 		if (depth >= iterative_deepening_search_depth) {
-			return evalFn(role, state);
+			return evalFn.value(role, state);
 		}
 		if (isOutOfTime()) {
 			return 0;
@@ -349,7 +266,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 				System.out.println("Set search depth to: " + iterative_deepening_search_depth);
 			}
 			else {	//There was a timeout
-				iterative_deepening_search_depth -= 1;
+				iterative_deepening_search_depth = java.lang.Math.max(iterative_deepening_search_depth-1, 0);
 				System.out.println("Out of time! Set search depth to: " + iterative_deepening_search_depth);
 			}
 		}
