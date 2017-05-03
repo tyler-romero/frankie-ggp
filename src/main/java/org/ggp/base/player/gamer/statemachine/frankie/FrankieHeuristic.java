@@ -114,7 +114,7 @@ class GoalProximityHeuristic extends FrankieHeuristic {
 
 	@Override
 	double value(StateMachine stateMachine, Role role, MachineState state) throws MoveDefinitionException, TransitionDefinitionException {
-		MachineState terminalState = stateMachine.performDepthCharge(state, null);	// Does this actually find a desireable terminal state? Does it matter?
+		MachineState terminalState = stateMachine.performDepthCharge(state, null);	// Does this actually find a desirable terminal state? Does it matter?
 		int terminalReward = 0;
 
 		try{
@@ -128,7 +128,9 @@ class GoalProximityHeuristic extends FrankieHeuristic {
 		Set<GdlSentence> currentGDL = state.getContents();
 		Set<GdlSentence> missingGDL = terminalGDL;
 		missingGDL.removeAll(currentGDL);
-		float fracTerm = (terminalGDL.size()-missingGDL.size())/terminalGDL.size();
+		float fracTerm = (terminalGDL.size() - missingGDL.size())/terminalGDL.size();
+
+		System.out.println("GoalProx: "+terminalReward * fracTerm);
 		return terminalReward * fracTerm * weight;
 	}
 }

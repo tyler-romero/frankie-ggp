@@ -1,9 +1,10 @@
 package org.ggp.base.player.gamer.statemachine.frankie;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
 import org.ggp.base.util.statemachine.MachineState;
@@ -16,57 +17,96 @@ import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
 public class FrankieUniversalGamer extends FrankieGamer {
 
-	private Map<Role, Integer> roleMap;
-	private Role agent;
-	private List<Role> roles;
-	private int numRoles;
-	private int iterative_deepening_search_depth;
 	private boolean isSinglePlayer;
 	private boolean did_timeout;
-	private StateMachine stateMachine;
+	private boolean training;
+	private boolean testing;
+	private int iterative_deepening_search_depth;
+	private int iterative_deepening_rate;
+	private int iterative_deepening_counter;
 	private long finishBy;
 	private long buffer;
+	private String saveFile;
+	private String trainingSaveFile;
+	private Role agent;
+	private List<Role> roles;
+	private StateMachine stateMachine;
 	private FrankieEvaluationFunction evalFn;
 
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
+		System.out.println("================= New Game =================");
 		System.out.println(getName());	// Print the agent's name
 
 		stateMachine = getStateMachine();
-		roleMap = stateMachine.getRoleIndices();
 		agent = getRole();
 		roles = stateMachine.getRoles();
-		numRoles = roles.size();
 
 		// Configure Settings
-		// TODO: Learn this from experience
-		// TODO: Set search depth based on initial branching factor
+		training = true;	// Perform random search over heuristic weights
+		testing = false;	// Use best set of weights found so far
 		buffer = 3000;
+		iterative_deepening_rate = 3;	// Number of turns in between updating depth
+		iterative_deepening_counter = iterative_deepening_rate;
 
 		// Determine if game is single-player or multi-player and init heuristics
 		if(roles.size() > 1){
-			isSinglePlayer = false;
 			System.out.println("Multi-Player Game");
-			iterative_deepening_search_depth = 3;
+			isSinglePlayer = false;
+			saveFile = "frankie_weights_multi_player.txt";
+			trainingSaveFile = "frankie_training_weights_multi_player.txt";
+			iterative_deepening_search_depth = 4;
 		}
-		else if(roles.size() == 1){
-			isSinglePlayer = true;
+		else {
 			System.out.println("Single-Player Game");
+			isSinglePlayer = true;
+			saveFile = "frankie_weights_single_player.txt";
+			trainingSaveFile = "frankie_training_weights_single_player.txt";
 			iterative_deepening_search_depth = 6;
 		}
-		else assert(true);
 
-		// Set up heuristics
+		// Set up heuristics and evaluation function. Keep order the same.
 		List<FrankieHeuristic> heuristics = new ArrayList<FrankieHeuristic>();
-		heuristics.add( new MonteCarloHeuristic(1, 4) );
-		heuristics.add( new GoalProximityHeuristic(0) );
-		heuristics.add( new AgentMobilityHeuristic(0) );
-		heuristics.add( new OppMobilityHeuristic(0) );
+		heuristics.add( new MonteCarloHeuristic(0.33, 4) );
+		heuristics.add( new AgentMobilityHeuristic(0.33) );
 		heuristics.add( new AgentFocusHeuristic(0) );
-		heuristics.add( new OppFocusHeuristic(0) );
+		if(!isSinglePlayer) {
+			heuristics.add( new OppMobilityHeuristic(0) );
+			heuristics.add( new OppFocusHeuristic(0.33) );
+		}
 		evalFn = new FrankieEvaluationFunction(stateMachine, heuristics);
+
+		// Load weights if specified
+		if (training) {
+			File f = new File(trainingSaveFile);
+			if(f.exists() && !f.isDirectory()){
+				try {
+					evalFn.load(trainingSaveFile);
+					System.out.println("Successfully loaded training evaluation function");
+				} catch (IOException e) {
+					System.out.println("Failed to load training evaluation function");
+				}
+			}
+			else {
+				System.out.println("No training evaluation function found, using default eval function");
+			}
+		}
+		if (testing) {
+			File f = new File(saveFile);
+			if(f.exists() && !f.isDirectory()){
+				try {
+					evalFn.load(saveFile);
+					System.out.println("Successfully loaded testing evaluation function");
+				} catch (IOException e) {
+					System.out.println("Failed to load testing evaluation function");
+				}
+			}
+			else {
+				System.out.println("No testing evaluation function found, using default eval function");
+			}
+		}
 	}
 
 	// ----- Helper Functions ----- //
@@ -235,6 +275,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		return action;
 	}
 
+
 	// ----- Select Move ----- //
 	@Override
 	public Move stateMachineSelectMove(long timeout)
@@ -243,6 +284,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		StateMachine stateMachine = getStateMachine();
 		long start = System.currentTimeMillis();	// Start timer
 		finishBy = timeout - buffer;
+
+		System.out.println(" --- Turn --- ");
 
 		did_timeout = false;
 
@@ -262,8 +305,12 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		// Iterative Deepening
 		if(moves.size() != 1){	// Only increase depth if it was our turn
 			if(!did_timeout){
-				iterative_deepening_search_depth += 1;
-				System.out.println("Set search depth to: " + iterative_deepening_search_depth);
+				if(iterative_deepening_rate == iterative_deepening_counter) {	// Only increase depth every so often
+					iterative_deepening_search_depth += 1;
+					System.out.println("Set search depth to: " + iterative_deepening_search_depth);
+					iterative_deepening_counter = 0;
+				}
+				iterative_deepening_counter++;
 			}
 			else {	//There was a timeout
 				iterative_deepening_search_depth = java.lang.Math.max(iterative_deepening_search_depth-1, 0);
@@ -271,12 +318,33 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			}
 		}
 
-
 		long stop = System.currentTimeMillis();		// Stop timer
 
 		// Don't touch
 		notifyObservers(new GamerSelectedMoveEvent(moves, action, stop - start));
 		return action;
+	}
+
+
+	@Override
+	public void stateMachineStop() {
+		// Cleanup when the match ends normally
+		try {
+			int reward = stateMachine.getGoal(getCurrentState(), agent);
+			System.out.println("Final Reward: " + reward);
+
+			if(training){
+				Serializer ser = new Serializer();
+				FrankieTrainer trainer = ser.deserializeTrainier();
+				trainer.updateEvaluateAndSave(evalFn, saveFile, trainingSaveFile, reward);
+				trainer.print();
+				ser.serializeTrainer(trainer);
+			}
+		} catch (GoalDefinitionException e) {
+			System.out.println("Goal Definition Exception: Failed to retrive final reward");
+		}
+
+
 	}
 
 }
