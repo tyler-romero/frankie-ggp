@@ -68,7 +68,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		timer.initTimer(finishBy);
 
 		// Get randomized list of moves
-		List<Move> moves = stateMachine.getLegalMoves(getCurrentState(), getRole());
+		List<Move> moves = stateMachine.getLegalMoves(getCurrentState(), agent);
 		moves = new ArrayList<Move>(moves);
 		Collections.shuffle(moves);	// Randomize move order
 

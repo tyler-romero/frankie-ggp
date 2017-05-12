@@ -226,7 +226,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	Node getRoot(MachineState currentState) throws MoveDefinitionException {
 		if (root != null){
 			for(Node child: root.children) {
-				if(child.state == currentState) {
+				if(child.state.equals(currentState)) {
 					root = child;
 					return root;
 				}
@@ -240,6 +240,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	@Override
 	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
 		root = getRoot(currentState);
+		printTree(root, 0, 0);
 		System.out.println("Num recycled depth charges: " + root.visits);
 
 		// Search the tree
@@ -252,25 +253,28 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 
 		}
 
-		// Select the best action from the children
+		// Select the best action from the children.
 		Move bestAction = moves.get(0);
-		double score = 0.0;
-		for(Node child : root.children) {
-
-			double result = child.get_value();
-
-			if (result == 100) {
-				score = result;
-				bestAction = child.action;
-				break;
+		double score;
+		if(root.isMin(stateMachine, agent)){	// Min case: Only one possible action. Find min action value.
+			score = 100.0;
+			for(Node child : root.children) {
+				double result = child.get_value();
+				if (result < score)
+					score = result;
 			}
-			if (result > score) {
-				score = result;
-				bestAction = child.action;
+		} else {								// Max case: Find best action. Find max action value.
+			score = 0;
+			for(Node child : root.children) {
+				double result = child.get_value();
+				if (result > score) {
+					score = result;
+					bestAction = child.action;
+				}
 			}
 		}
 
-		printTree(root, 0);
+		printTree(root, 1, 0);
 		System.out.println("Num depth charges: " + root.visits);
 		System.out.println("Action Value: " + score);
 		return bestAction;
@@ -288,7 +292,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 		}
 
 		// If all children have been visited, select a child to recurse on
-		double score = -10000000;
+		double score = -Double.MAX_VALUE;
 		Node result = null;
 		for(Node child : node.children){
 			double newscore = selectfn(child);
@@ -346,9 +350,9 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 
 	protected abstract void backprop(Node node, double score) throws MoveDefinitionException;
 
-	void printTree(Node node, int depth) throws MoveDefinitionException {
-		if(depth > 1) return;
-		if(depth == 0) System.out.println("-----------------------------------------------");
+	void printTree(Node node, int max_depth, int depth) throws MoveDefinitionException {
+		if(depth > max_depth) return;
+		if(depth == 0 && max_depth != 0) System.out.println("-----------------------------------------------");
 		StringBuffer outputBuffer = new StringBuffer(depth);
 		for (int i = 0; i < depth; i++){
 		   outputBuffer.append("\t");
@@ -361,7 +365,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 
 		// post-order
 		for(Node child : node.children){
-			printTree(child, depth+1);
+			printTree(child, max_depth, depth+1);
 		}
 		System.out.println(tabs + "(" + node.get_value() + "/" + node.visits + ") " + bool);
 	}
@@ -409,7 +413,7 @@ class MultiPlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 	protected
 	double selectfn(Node node) throws MoveDefinitionException{
 		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
-		if(node.isMin(stateMachine, agent)){
+		if(node.parent.isMin(stateMachine, agent)){
 			return -1*(node.get_value() - 2*Math.sqrt(Math.log(node.parent.visits)/node.visits));
 		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
