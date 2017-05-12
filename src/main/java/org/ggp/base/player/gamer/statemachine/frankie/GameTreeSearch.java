@@ -215,24 +215,34 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	Random randomizer;
 	Node root;
 	List<Role> roles;
+	boolean metagaming;
 
 	AbstractMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
 		randomizer = new Random();
 		root = null;	// Think about how to determine if its a min or max term
 		roles = stateMachine.getRoles();
+		metagaming = true;
 	}
 
 	Node getRoot(MachineState currentState) throws MoveDefinitionException {
-		if (root != null){
-			for(Node child: root.children) {
-				if(child.state.equals(currentState)) {
-					root = child;
-					return root;
-				}
+		if(root == null){
+			System.out.println("Creating new game tree root");
+			root = new Node(currentState, null, null);
+			return root;
+		}
+
+		if(metagaming){
+			return root;	// Return the root that was expanded during metagaming
+		}
+
+		for(Node child: root.children) {
+			if(child.state.equals(currentState)) {
+				root = child;
+				return root;
 			}
 		}
-		System.out.println("Creating new game tree root");
+		System.out.println("New root not found in children. Creating new game tree root.");
 		root = new Node(currentState, null, null);
 		return root;
 	}
@@ -240,18 +250,13 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	@Override
 	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
 		root = getRoot(currentState);
+		if(metagaming) metagaming = false;
 		printTree(root, 0, 0);
 		System.out.println("Num recycled depth charges: " + root.visits);
 
 		// Search the tree
 		System.out.println("Searching tree...");
-		while(!timer.isOutOfTime()) {
-			Node node_to_expand = select(root);
-			Node node_to_evaluate = expand(node_to_expand);
-			double score = simulate(node_to_evaluate);
-			backprop(node_to_evaluate, score);
-
-		}
+		MCTS(root);	// Uses timer to terminate
 
 		// Select the best action from the children.
 		Move bestAction = moves.get(0);
@@ -278,6 +283,15 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 		System.out.println("Num depth charges: " + root.visits);
 		System.out.println("Action Value: " + score);
 		return bestAction;
+	}
+
+	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException {
+		while(!timer.isOutOfTime()) {
+			Node node_to_expand = select(root);
+			Node node_to_evaluate = expand(node_to_expand);
+			double score = simulate(node_to_evaluate);
+			backprop(node_to_evaluate, score);
+		}
 	}
 
 	Node select(Node node) throws MoveDefinitionException {

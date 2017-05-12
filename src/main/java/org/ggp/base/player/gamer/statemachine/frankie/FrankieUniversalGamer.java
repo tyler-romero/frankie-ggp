@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
+import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
 import org.ggp.base.util.statemachine.Role;
 import org.ggp.base.util.statemachine.StateMachine;
@@ -16,42 +17,49 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 	// Settings and helpers
 	private long buffer;
-	private boolean isSinglePlayer;
 
 	// Agent components
 	private Role agent;
 	private List<Role> roles;
 	private StateMachine stateMachine;
 	private Timer timer;
-	private FrankieEvaluationFunction evalFn;
-	private GameTreeSearch searchFn;
+	private AbstractMonteCarloTreeSearch searchFn;
 
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
+		// Configure Settings
+		buffer = 3000;
+
+		// Start timer
+		long finishBy = timeout - buffer;
+		timer = new Timer();
+		timer.initTimer(finishBy);
+
 		System.out.println("================= New Game =================");
 		System.out.println(getName());	// Print the agent's name
 
 		stateMachine = getStateMachine();
 		agent = getRole();
 		roles = stateMachine.getRoles();
-		timer = new Timer();
 
-		// Configure Settings
-		buffer = 3000;
-
-		// Determine if game is single-player or multi-player and init heuristics
+		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
 			System.out.println("Multi-Player Game");
-			isSinglePlayer = false;
 			searchFn = new MultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer);
 		}
 		else {
 			System.out.println("Single-Player Game");
-			isSinglePlayer = true;
 			searchFn = new SinglePlayerMonteCarloTreeSearch(stateMachine, agent, timer);
 		}
+
+		// Start computing the game tree during meta game
+		MachineState currentState = getCurrentState();
+		assert(currentState != null);
+		Node root = searchFn.getRoot(currentState);
+		searchFn.MCTS(root);
+		searchFn.printTree(root, 1, 0);
 	}
 
 	// ----- Select Move ----- //
@@ -91,7 +99,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		// Cleanup when the match ends normally
 		try {
 			int reward = stateMachine.getGoal(getCurrentState(), agent);
-			System.out.println("Final Reward: " + reward);
+			System.out.println("Game over. Final Reward: " + reward);
 
 		} catch (GoalDefinitionException e) {
 			System.out.println("Goal Definition Exception: Failed to retrive final reward");

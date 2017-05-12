@@ -32,6 +32,9 @@ public class Node {
 	}
 
 	boolean isMin(StateMachine sm, Role agent) throws MoveDefinitionException {
+		// We treat the node as a min if our agent only has one action.
+			// This should work even if it is our agents turn and our agent only has one action
+			// because there will only be one possible state to follow anyways.
 		return (sm.findLegals(agent, state).size() == 1);
 	}
 }
