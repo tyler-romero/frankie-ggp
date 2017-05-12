@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 public final class FrankieTrainer implements java.io.Serializable {
 	private static final long serialVersionUID = 1L;
-	private static int n;
+	private int n;
 	private ArrayList<Integer> scores;
 	private double high_score;
 
@@ -66,7 +66,7 @@ public final class FrankieTrainer implements java.io.Serializable {
 	public void print() {
 		double avg_score = calculateAvg();
 		System.out.println("----- Frankie Trainer -----");
-		System.out.println("Game number " + scores.size() + " out of 10");
+		System.out.println("Game number " + scores.size() + " out of " + n);
 		System.out.println("Average Score for this Eval Function: " + avg_score);
 		System.out.println("Best Score for any Eval Function: " + high_score);
 		System.out.println("---------------------------");
