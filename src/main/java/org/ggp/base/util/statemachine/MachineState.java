@@ -15,7 +15,7 @@ public class MachineState {
      * want to do more advanced things can subclass this implementation, but for
      * many cases this will do exactly what we want.
      */
-    private final Set<GdlSentence> contents;
+    protected Set<GdlSentence> contents;
     public MachineState(Set<GdlSentence> contents)
     {
         this.contents = contents;
