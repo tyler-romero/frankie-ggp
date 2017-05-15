@@ -251,11 +251,9 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
 		root = getRoot(currentState);
 		if(metagaming) metagaming = false;
-		printTree(root, 0, 0);
 		System.out.println("Num recycled depth charges: " + root.visits);
 
 		// Search the tree
-		System.out.println("Searching tree...");
 		MCTS(root);	// Uses timer to terminate
 
 		// Select the best action from the children.
@@ -318,7 +316,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 
 		// Some epsilon greediness to encourage more exploration
 		// If max, use epsilon greedy, if min, explore randomly
-		if(randomizer.nextDouble() < 0.05){
+		if(randomizer.nextDouble() < 0.1){
 			result = node.children.get(randomizer.nextInt(node.children.size()));
 		}
 
@@ -366,7 +364,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 
 	void printTree(Node node, int max_depth, int depth) throws MoveDefinitionException {
 		if(depth > max_depth) return;
-		if(depth == 0 && max_depth != 0) System.out.println("-----------------------------------------------");
+		if(depth == 0 && max_depth != 0) System.out.println("-----");
 		StringBuffer outputBuffer = new StringBuffer(depth);
 		for (int i = 0; i < depth; i++){
 		   outputBuffer.append("\t");
@@ -377,11 +375,13 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 		if(node.isMin(stateMachine, agent)) bool = "min";
 		else bool = "max";
 
-		// post-order
+		// pre-order
+		System.out.println(tabs + "(" + node.get_value() + "/" + node.visits + ") " + bool);
 		for(Node child : node.children){
 			printTree(child, max_depth, depth+1);
 		}
-		System.out.println(tabs + "(" + node.get_value() + "/" + node.visits + ") " + bool);
+		if(depth == 0 && max_depth != 0) System.out.println("-----");
+
 	}
 }
 
@@ -457,10 +457,6 @@ class SinglePlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 	@Override
 	protected
 	double selectfn(Node node) throws MoveDefinitionException{
-		// A formula based on Lower Confidence Bounds (How pessimistic we are)
-		if(node.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - 2*Math.sqrt(Math.log(node.parent.visits)/node.visits));
-		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are)
 		return node.get_value() + 2*Math.sqrt(Math.log(node.parent.visits)/node.visits);
 	}

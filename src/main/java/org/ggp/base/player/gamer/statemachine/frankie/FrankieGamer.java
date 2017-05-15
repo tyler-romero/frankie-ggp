@@ -10,6 +10,8 @@ import org.ggp.base.util.statemachine.cache.CachedStateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
+import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
+import org.ggp.base.util.statemachine.verifier.StateMachineVerifier;
 
 public abstract class FrankieGamer extends StateMachineGamer {
 
@@ -27,8 +29,19 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	// This is the default State Machine
 	@Override
 	public StateMachine getInitialStateMachine() {
-		//return new CachedStateMachine(new ProverStateMachine());
-		return new CachedStateMachine(new PropNetStateMachine());
+		StateMachine prover = new ProverStateMachine();
+		prover.initialize(getMatch().getGame().getRules());
+		StateMachine propnet = new PropNetStateMachine();
+		propnet.initialize(getMatch().getGame().getRules());
+		boolean isConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 1000);
+		if(isConsistant) {
+			System.out.println("Using PropNetStateMachine");
+			return new CachedStateMachine(new PropNetStateMachine());
+		}
+		else{
+			System.out.println("Using ProverStateMachine");
+			return new CachedStateMachine(new ProverStateMachine());
+		}
 	}
 
 	// This is the default Sample Panel

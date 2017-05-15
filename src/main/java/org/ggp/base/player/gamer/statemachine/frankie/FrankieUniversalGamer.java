@@ -31,9 +31,10 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	{
 		// Configure Settings
 		buffer = 3000;
+		long metagamebuffer = 5000;
 
 		// Start timer
-		long finishBy = timeout - buffer;
+		long finishBy = timeout - metagamebuffer;
 		timer = new Timer();
 		timer.initTimer(finishBy);
 
@@ -71,7 +72,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		long start = System.currentTimeMillis();	// Start timer
 		long finishBy = timeout - buffer;
 
-		System.out.println(" --- Turn --- ");
+		System.out.println(" ------------- Turn ------------- ");
 
 		timer.initTimer(finishBy);
 
