@@ -20,12 +20,12 @@ public class StateMachineVerifier {
         theMachines.add(theReference);
         theMachines.add(theSubject);
 
-        GamerLogger.emitToConsole("Consistency checking: [\n");
+        GamerLogger.emitToConsole("Consistency checking: [");
         int nRound = 0;
         while(true) {
             nRound++;
 
-            GamerLogger.emitToConsole("reset.........\n");
+            GamerLogger.emitToConsole(".");
             MachineState[] theCurrentStates = new MachineState[theMachines.size()];
             for(int i = 0; i < theMachines.size(); i++) {
                 try {

@@ -25,13 +25,15 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private Timer timer;
 	private AbstractMonteCarloTreeSearch searchFn;
 
+	private int turn;
+
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
 		// Configure Settings
 		buffer = 3000;
-		long metagamebuffer = 5000;
+		long metagamebuffer = 4000;
 
 		// Start timer
 		long finishBy = timeout - metagamebuffer;
@@ -44,6 +46,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		stateMachine = getStateMachine();
 		agent = getRole();
 		roles = stateMachine.getRoles();
+		turn = 0;
 
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
@@ -60,7 +63,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		assert(currentState != null);
 		Node root = searchFn.getRoot(currentState);
 		searchFn.MCTS(root);
-		searchFn.printTree(root, 1, 0);
+		//searchFn.printTree(root, 1, 0);
+		System.out.println("Number of Initial Depth Charges: " + root.visits);
 	}
 
 	// ----- Select Move ----- //
@@ -72,7 +76,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		long start = System.currentTimeMillis();	// Start timer
 		long finishBy = timeout - buffer;
 
-		System.out.println(" ------------- Turn ------------- ");
+		turn += 1;
+		System.out.println(" ------------- Turn " + turn + " ------------- ");
 
 		timer.initTimer(finishBy);
 

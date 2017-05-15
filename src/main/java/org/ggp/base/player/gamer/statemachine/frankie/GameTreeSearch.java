@@ -277,7 +277,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 			}
 		}
 
-		printTree(root, 1, 0);
+		//printTree(root, 1, 0);
 		System.out.println("Num depth charges: " + root.visits);
 		System.out.println("Action Value: " + score);
 		return bestAction;
@@ -303,9 +303,16 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 				return child;
 		}
 
+		// Some epsilon greediness to encourage more exploration
+		// If max, use epsilon greedy, if min, explore randomly
+		Node result = null;
+		if(randomizer.nextDouble() < 0.05){
+			result = node.children.get(randomizer.nextInt(node.children.size()));
+			return select(result);
+		}
+
 		// If all children have been visited, select a child to recurse on
 		double score = -Double.MAX_VALUE;
-		Node result = null;
 		for(Node child : node.children){
 			double newscore = selectfn(child);
 			if (newscore > score) {
@@ -313,13 +320,6 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 				result = child;
 			}
 		}
-
-		// Some epsilon greediness to encourage more exploration
-		// If max, use epsilon greedy, if min, explore randomly
-		if(randomizer.nextDouble() < 0.1){
-			result = node.children.get(randomizer.nextInt(node.children.size()));
-		}
-
 		return select(result);
 	}
 
@@ -428,10 +428,10 @@ class MultiPlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 	double selectfn(Node node) throws MoveDefinitionException{
 		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
 		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - 2*Math.sqrt(Math.log(node.parent.visits)/node.visits));
+			return -1*(node.get_value() - 3*Math.sqrt(Math.log(node.parent.visits)/node.visits));
 		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + 2*Math.sqrt(Math.log(node.parent.visits)/node.visits);
+		return node.get_value() + 3*Math.sqrt(Math.log(node.parent.visits)/node.visits);
 	}
 }
 

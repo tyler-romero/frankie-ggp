@@ -29,18 +29,19 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	// This is the default State Machine
 	@Override
 	public StateMachine getInitialStateMachine() {
-		StateMachine prover = new ProverStateMachine();
+		StateMachine prover = new CachedStateMachine(new ProverStateMachine());
 		prover.initialize(getMatch().getGame().getRules());
-		StateMachine propnet = new PropNetStateMachine();
+		StateMachine propnet = new CachedStateMachine(new PropNetStateMachine());
 		propnet.initialize(getMatch().getGame().getRules());
+
 		boolean isConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 1000);
+
 		if(isConsistant) {
 			System.out.println("Using PropNetStateMachine");
-			return new CachedStateMachine(new PropNetStateMachine());
-		}
-		else{
+			return propnet;
+		} else {
 			System.out.println("Using ProverStateMachine");
-			return new CachedStateMachine(new ProverStateMachine());
+			return prover;
 		}
 	}
 
