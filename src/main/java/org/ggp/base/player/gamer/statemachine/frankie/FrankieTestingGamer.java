@@ -13,7 +13,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public class FrankieUniversalGamer extends FrankieGamer {
+public class FrankieTestingGamer extends FrankieGamer {
 
 	// Settings and helpers
 	private long buffer;
@@ -51,7 +51,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
 			System.out.println("Multi-Player Game");
-			searchFn = new MultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer);
+			searchFn = new ExperimentalMultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer);
 		}
 		else {
 			System.out.println("Single-Player Game");
@@ -63,6 +63,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		assert(currentState != null);
 		Node root = searchFn.getRoot(currentState);
 		searchFn.MCTS(root);
+		//searchFn.printTree(root, 1, 0);
 		System.out.println("Number of Initial Depth Charges: " + root.visits);
 
 		if(timer.isExpired()){
@@ -119,5 +120,6 @@ public class FrankieUniversalGamer extends FrankieGamer {
 			System.out.println("Goal Definition Exception: Failed to retrive final reward");
 		}
 	}
+
 
 }

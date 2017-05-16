@@ -239,6 +239,7 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 		for(Node child: root.children) {
 			if(child.state.equals(currentState)) {
 				root = child;
+				root.parent = null;
 				return root;
 			}
 		}
@@ -251,7 +252,9 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
 		root = getRoot(currentState);
 		if(metagaming) metagaming = false;
+
 		System.out.println("Num recycled depth charges: " + root.visits);
+		System.out.println("Projected state value: " + root.get_value());
 
 		// Search the tree
 		MCTS(root);	// Uses timer to terminate
@@ -286,8 +289,11 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException {
 		while(!timer.isOutOfTime()) {
 			Node node_to_expand = select(root);
+			if(timer.isOutOfTime()) break;
 			Node node_to_evaluate = expand(node_to_expand);
+			if(timer.isOutOfTime()) break;
 			double score = simulate(node_to_evaluate);
+			if(timer.isOutOfTime()) break;
 			backprop(node_to_evaluate, score);
 		}
 	}
@@ -297,21 +303,17 @@ abstract class AbstractMonteCarloTreeSearch extends GameTreeSearch{
 		if(node.children.size() == 0) return node;
 		if(node.visits == 0) return node;
 
-		// If a child has not been searched, search it
-		for(Node child : node.children){
-			if(child.visits==0)
-				return child;
-		}
-
-		// Some epsilon greediness to encourage more exploration
-		// If max, use epsilon greedy, if min, explore randomly
-		Node result = null;
-		if(randomizer.nextDouble() < 0.05){
-			result = node.children.get(randomizer.nextInt(node.children.size()));
-			return select(result);
+		// Evenly search each child to an arbitrary threshold
+		int threshold = 3;
+		for(int i=0; i<threshold; i++) {
+			for(Node child : node.children){
+				if(child.visits<=i)
+					return child;
+			}
 		}
 
 		// If all children have been visited, select a child to recurse on
+		Node result = null;
 		double score = -Double.MAX_VALUE;
 		for(Node child : node.children){
 			double newscore = selectfn(child);
@@ -392,11 +394,47 @@ class MultiPlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 		// Act pessimistic for our opponents moves, and optimisitic for our own.
 		// During backprop, on min turns, return the min value of the nodes children on min states.
 
+	private double discount;
 
 	MultiPlayerMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
 		System.out.println("MultiPlayerMonteCarloTreeSearch");
+		discount = 0.98;
 	}
+
+	@Override
+	protected
+	void backprop(Node node, double score) {
+		node.visits = node.visits + 1;
+		node.utility = node.utility + score;
+		if(node.parent != null) {
+			backprop(node.parent, score*discount);
+		}
+	}
+
+	@Override
+	protected
+	double selectfn(Node node) throws MoveDefinitionException{
+		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
+		if(node.parent.isMin(stateMachine, agent)){
+			return -1*(node.get_value() - Math.sqrt(Math.log(2*node.parent.visits)/node.visits));
+		}
+		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
+		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
+	}
+}
+
+
+class ExperimentalMultiPlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
+	// Used by FrankieTestingGamer, to help us compare changes against our current MCTS agent.
+	private double discount;
+
+	ExperimentalMultiPlayerMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
+		super(sm, a, t);
+		System.out.println("MultiPlayerMonteCarloTreeSearch");
+		discount = 0.98;
+	}
+
 
 	@Override
 	protected
@@ -423,15 +461,12 @@ class MultiPlayerMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 		}
 	}
 
+
 	@Override
 	protected
 	double selectfn(Node node) throws MoveDefinitionException{
-		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
-		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - 3*Math.sqrt(Math.log(node.parent.visits)/node.visits));
-		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + 3*Math.sqrt(Math.log(node.parent.visits)/node.visits);
+		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
 	}
 }
 

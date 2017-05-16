@@ -131,7 +131,7 @@ public class FrankieHeuristicGamer extends FrankieGamer {
 
 		System.out.println(" --- Turn --- ");
 
-		timer.initTimer(finishBy);
+		timer.initTimer(timeout, finishBy);
 
 
 		// Get randomized list of moves
