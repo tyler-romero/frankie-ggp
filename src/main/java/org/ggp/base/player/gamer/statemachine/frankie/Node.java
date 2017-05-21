@@ -14,6 +14,7 @@ public class Node {
 	public Node parent;
 	public List<Node> children;
 	public double utility;
+	public double normalizer;
 	public MachineState state;
 	public Move action;
 
@@ -27,7 +28,9 @@ public class Node {
 	}
 
 	public double get_value() {
-		if(visits != 0) return utility/visits;
+		if(visits != 0){
+			return utility/visits;
+		}
 		else return 0.0;
 	}
 

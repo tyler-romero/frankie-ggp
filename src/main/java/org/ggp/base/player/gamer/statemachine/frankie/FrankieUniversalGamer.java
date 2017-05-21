@@ -23,7 +23,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private List<Role> roles;
 	private StateMachine stateMachine;
 	private Timer timer;
-	private AbstractMonteCarloTreeSearch searchFn;
+	private MonteCarloTreeSearch searchFn;
 
 	private int turn;
 
@@ -61,9 +61,10 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		// Start computing the game tree during meta game
 		MachineState currentState = getCurrentState();
 		assert(currentState != null);
-		Node root = searchFn.getRoot(currentState);
-		searchFn.MCTS(root);
-		System.out.println("Number of Initial Depth Charges: " + root.visits);
+
+		//Node root = searchFn.getRoot(currentState);
+		//searchFn.MCTS(root);
+		//System.out.println("Number of Initial Depth Charges: " + root.visits);
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");

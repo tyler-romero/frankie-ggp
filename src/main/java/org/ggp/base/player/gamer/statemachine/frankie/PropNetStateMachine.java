@@ -25,8 +25,6 @@ import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 import org.ggp.base.util.statemachine.implementation.prover.query.ProverQueryBuilder;
 
-
-
 public class PropNetStateMachine extends StateMachine {
     /** The underlying proposition network  */
     private PropNet propNet;
@@ -88,13 +86,10 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public int getGoal(MachineState state, Role role)
             throws GoalDefinitionException {
-    	// propreward
-    	//System.out.println("getGoal");
     	markbases(state.getContents());
     	Set<Proposition> goals = propNet.getGoalPropositions().get(role);
     	for (Proposition p : goals) {
-			if (p.getValue())
-				return Integer.parseInt(p.getName().get(1).toString());
+			if (p.getValue()) return Integer.parseInt(p.getName().get(1).toString());
 		}
 		throw new GoalDefinitionException(state, role);
     }
@@ -132,14 +127,14 @@ public class PropNetStateMachine extends StateMachine {
     }
 
     private List<Move> propToMoves(Set<Proposition> set, boolean any) {
-    	//System.out.println("propToMoves");
 		List<Move> moves = new ArrayList<Move>(set.size());
 		for (Proposition p : set) {
 			if (any || p.getValue()) {
-				moves.add(new Move(p.getName().get(1)));
-				continue;
+				moves.add(getMoveFromProposition(p));
+				//continue;
 			}
 		}
+		//System.out.println("LegalMoves: " + moves.size());
 		return moves;
 	}
 
@@ -149,10 +144,11 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public List<Move> getLegalMoves(MachineState state, Role role)
             throws MoveDefinitionException {
-        // TODO: Compute legal moves.
-    	//System.out.println("getLegalMoves");
+    	clearpropnet();	// For some stupid reason, necessary for multithreading
     	markbases(state.getContents());
-    	Set<Proposition> legals = propNet.getLegalPropositions().get(role);
+    	Map<Role, Set<Proposition>> legalPropositions = propNet.getLegalPropositions();
+    	Set<Proposition> legals = legalPropositions.get(role);
+
 		return propToMoves(legals, false);
     }
 
@@ -162,8 +158,6 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public MachineState getNextState(MachineState state, List<Move> moves)
             throws TransitionDefinitionException {
-        // TODO: Compute the next state.
-    	// propnext
     	// Moves needs to be converted to a boolean list of input markings
     	markbases(state.getContents());
 		markactions(toDoes(moves));
@@ -248,15 +242,15 @@ public class PropNetStateMachine extends StateMachine {
         return new MachineState(contents);
     }
 
-
     // Helper Functions. Pseudo code from chapter 10
     private void markbases(Set<GdlSentence> contents){
-    	//System.out.println("markbases");
     	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(lastBases);
 		Set<GdlSentence> nowTrue = new HashSet<GdlSentence>(contents);
 		nowFalse.removeAll(contents);
 		nowTrue.removeAll(lastBases);
+
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
+
 		for (GdlSentence p : nowFalse) {
 			bases.get(p).setValue(false);
 			bases.get(p).startPropogate();
@@ -269,7 +263,6 @@ public class PropNetStateMachine extends StateMachine {
     }
 
     private void markactions(Set<GdlSentence> does){
-    	//System.out.println("markactions");
     	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(lastInputs);
 		Set<GdlSentence> nowTrue = new HashSet<GdlSentence>(does);
 		nowFalse.removeAll(does);
@@ -287,7 +280,6 @@ public class PropNetStateMachine extends StateMachine {
     }
 
     private void clearpropnet(){
-    	//System.out.println("clearpropnet");
     	Set<Component> nots = new HashSet<Component>();
 		for (Component s : propNet.getComponents()) {
 			s.reset();

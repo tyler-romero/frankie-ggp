@@ -9,6 +9,7 @@ import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
 import org.ggp.base.util.statemachine.Role;
 import org.ggp.base.util.statemachine.StateMachine;
+import org.ggp.base.util.statemachine.cache.CachedStateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
@@ -17,13 +18,15 @@ public class FrankieTestingGamer extends FrankieGamer {
 
 	// Settings and helpers
 	private long buffer;
+	private int nThreads;
 
 	// Agent components
 	private Role agent;
 	private List<Role> roles;
 	private StateMachine stateMachine;
+	private List<StateMachine> machines;
 	private Timer timer;
-	private AbstractMonteCarloTreeSearch searchFn;
+	private MonteCarloTreeSearch searchFn;
 
 	private int turn;
 
@@ -31,27 +34,38 @@ public class FrankieTestingGamer extends FrankieGamer {
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
+		System.out.println("================= New Game =================");
+		System.out.println(getName());	// Print the agent's name
+
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
+		nThreads = 4;
 
-		// Start timer
+		// Start Timer
 		long finishBy = timeout - metagamebuffer;
 		timer = new Timer();
 		timer.initTimer(timeout, finishBy);
 
-		System.out.println("================= New Game =================");
-		System.out.println(getName());	// Print the agent's name
-
+		// Additional Setup
 		stateMachine = getStateMachine();
 		agent = getRole();
 		roles = stateMachine.getRoles();
 		turn = 0;
 
+		// Initialize statemachines for other threads
+		machines = new ArrayList<StateMachine>();
+		for(int i = 0; i<nThreads; i++){
+			//StateMachine sm = new CachedStateMachine(new ProverStateMachine());
+			StateMachine sm = new CachedStateMachine(new PropNetStateMachine());
+			sm.initialize(getMatch().getGame().getRules());
+			machines.add(sm);
+		}
+
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
 			System.out.println("Multi-Player Game");
-			searchFn = new ExperimentalMultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer);
+			searchFn = new MultiThreadedMultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 		}
 		else {
 			System.out.println("Single-Player Game");
@@ -61,10 +75,11 @@ public class FrankieTestingGamer extends FrankieGamer {
 		// Start computing the game tree during meta game
 		MachineState currentState = getCurrentState();
 		assert(currentState != null);
-		Node root = searchFn.getRoot(currentState);
-		searchFn.MCTS(root);
+
+		//Node root = searchFn.getRoot(currentState);
+		//searchFn.MCTS(root);
 		//searchFn.printTree(root, 1, 0);
-		System.out.println("Number of Initial Depth Charges: " + root.visits);
+		//System.out.println("Number of Initial Depth Charges: " + root.visits);
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");

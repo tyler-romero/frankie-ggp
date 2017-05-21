@@ -407,7 +407,8 @@ public abstract class StateMachine
     public Move getRandomMove(MachineState state, Role role) throws MoveDefinitionException
     {
         List<Move> legals = getLegalMoves(state, role);
-        return legals.get(new Random().nextInt(legals.size()));
+        Move randomMove = legals.get(new Random().nextInt(legals.size()));
+        return randomMove;
     }
 
     /**
@@ -456,6 +457,13 @@ public abstract class StateMachine
         }
         if(theDepth != null)
             theDepth[0] = nDepth;
+        return state;
+    }
+
+    public MachineState performDepthChargeLite(MachineState state) throws TransitionDefinitionException, MoveDefinitionException {
+        while(!isTerminal(state)) {
+            state = getNextStateDestructively(state, getRandomJointMove(state));
+        }
         return state;
     }
 
