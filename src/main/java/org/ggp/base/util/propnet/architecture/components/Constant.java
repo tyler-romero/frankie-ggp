@@ -45,7 +45,9 @@ public final class Constant extends Component
     }
 
 	@Override
-	public void reset() {}
+	public void reset() {
+		isRelevant = false;
+	}
 
 	@Override
 	public void propogate(boolean newValue) {

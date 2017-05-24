@@ -55,5 +55,6 @@ public final class Not extends Component
 	public void reset() {
 		lastPropogation = false;
 		value = false;
+		isRelevant = false;
 	}
 }

@@ -27,6 +27,8 @@ public final class Transition extends Component
 		}
     }
 
+
+
     @Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
     	file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
@@ -43,6 +45,7 @@ public final class Transition extends Component
 	public void reset() {
     	lastPropogation = false;
 		value = false;
+		isRelevant = false;
 	}
 
     /**

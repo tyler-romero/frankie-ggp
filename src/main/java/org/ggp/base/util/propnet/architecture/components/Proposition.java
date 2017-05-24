@@ -84,10 +84,17 @@ public final class Proposition extends Component {
 		}
 	}
 
+	public void startFlood() {
+		for (Component c: getOutputarr()){
+			c.flood();
+		}
+	}
+
 	@Override
 	public void reset() {
 		lastPropogation = false;
 		value = false;
+		isRelevant = false;
 	}
 
 	/**

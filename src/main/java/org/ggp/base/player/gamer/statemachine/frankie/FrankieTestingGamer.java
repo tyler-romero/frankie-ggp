@@ -13,6 +13,7 @@ import org.ggp.base.util.statemachine.cache.CachedStateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
+import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
 public class FrankieTestingGamer extends FrankieGamer {
 
@@ -40,7 +41,9 @@ public class FrankieTestingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 4;
+		nThreads = 2;
+		boolean useSpeedTestToDetermineThreads = true;
+		int speedTestDuration = 5000;
 
 		// Start Timer
 		long finishBy = timeout - metagamebuffer;
@@ -53,11 +56,27 @@ public class FrankieTestingGamer extends FrankieGamer {
 		roles = stateMachine.getRoles();
 		turn = 0;
 
+		if(useSpeedTestToDetermineThreads){
+			double chargesPerSec = performSpeedTest(speedTestDuration);
+			if(chargesPerSec > 100) nThreads = 1;
+			else nThreads = 2;
+		}
+
 		// Initialize statemachines for other threads
-		machines = new ArrayList<StateMachine>();
+		System.out.println("nThreads: " + nThreads);
+		machines = new ArrayList<StateMachine>(nThreads);
 		for(int i = 0; i<nThreads; i++){
-			//StateMachine sm = new CachedStateMachine(new ProverStateMachine());
-			StateMachine sm = new CachedStateMachine(new PropNetStateMachine());
+			StateMachine sm = null;
+
+			System.out.println("Creating instance of "+ statemachinetype);
+			if(statemachinetype == "PropNetStateMachine"){
+				sm = new CachedStateMachine(new PropNetStateMachine());
+			}
+			else if (statemachinetype == "ProverStateMachine"){
+				sm = new CachedStateMachine(new ProverStateMachine());
+			}
+			else assert(false);
+
 			sm.initialize(getMatch().getGame().getRules());
 			machines.add(sm);
 		}
@@ -76,10 +95,10 @@ public class FrankieTestingGamer extends FrankieGamer {
 		MachineState currentState = getCurrentState();
 		assert(currentState != null);
 
-		//Node root = searchFn.getRoot(currentState);
-		//searchFn.MCTS(root);
-		//searchFn.printTree(root, 1, 0);
-		//System.out.println("Number of Initial Depth Charges: " + root.visits);
+		Node root = searchFn.getRoot(currentState);
+		searchFn.MCTS(root);
+		searchFn.printTree(root, 1, 0);
+		System.out.println("Number of Initial Depth Charges: " + root.visits);
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
@@ -137,4 +156,20 @@ public class FrankieTestingGamer extends FrankieGamer {
 	}
 
 
+	public double performSpeedTest(int duration) throws TransitionDefinitionException, MoveDefinitionException{
+		System.out.println("Performing speed test");
+		long start = System.currentTimeMillis();	// Start timer
+		long testTime = start + duration;
+		Timer speedTestTimer = new Timer();
+		speedTestTimer.initTimer(0, testTime);
+		int count = 0;
+		while(!speedTestTimer.isOutOfTime()) {
+			count ++;
+			stateMachine.performDepthChargeLite(getCurrentState());
+		}
+		double chargesPerSec = 1000 * count / ((double)duration);
+		System.out.println("Charges Per Second: " + chargesPerSec);
+
+		return chargesPerSec;
+	}
 }

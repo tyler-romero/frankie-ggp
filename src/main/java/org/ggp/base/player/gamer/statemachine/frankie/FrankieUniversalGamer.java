@@ -48,6 +48,11 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		roles = stateMachine.getRoles();
 		turn = 0;
 
+		if(stateMachine instanceof PropNetStateMachine){
+			System.out.println("StateMachine is instance of PropNetStateMachine");
+			((PropNetStateMachine) stateMachine).prunepropnet();
+		}
+
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
 			System.out.println("Multi-Player Game");

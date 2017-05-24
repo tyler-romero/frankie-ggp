@@ -35,7 +35,6 @@ public class PropNetStateMachine extends StateMachine {
     private Set<GdlSentence> lastBases;
 	private Set<GdlSentence> lastInputs;
 
-	public List<Gdl> description;
 
     /**
      * Initializes the PropNetStateMachine. You should compute the topological
@@ -45,7 +44,6 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public void initialize(List<Gdl> description) {
         try {
-        	this.description = description;
 			propNet = OptimizingPropNetFactory.create(description);
 			for (Component c : propNet.getComponents()) {
 				c.crystalize();
@@ -58,7 +56,9 @@ public class PropNetStateMachine extends StateMachine {
 			for (Proposition p : propNet.getPropositions()) {
 				if (bases.contains(p) || inputs.contains(p)) {
 					p.base = true;
+					//System.out.println("" + p.getName());
 				}
+
 			}
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -101,6 +101,7 @@ public class PropNetStateMachine extends StateMachine {
      */
     @Override
     public MachineState getInitialState() {
+    	//System.out.println("GetInitialState");
     	clearpropnet();
     	propNet.getInitProposition().setValue(true);
     	propNet.getInitProposition().propogate(true);
@@ -128,10 +129,10 @@ public class PropNetStateMachine extends StateMachine {
 
     private List<Move> propToMoves(Set<Proposition> set, boolean any) {
 		List<Move> moves = new ArrayList<Move>(set.size());
+		//System.out.println("propToMoves: " + set.size());
 		for (Proposition p : set) {
 			if (any || p.getValue()) {
 				moves.add(getMoveFromProposition(p));
-				//continue;
 			}
 		}
 		//System.out.println("LegalMoves: " + moves.size());
@@ -144,6 +145,7 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public List<Move> getLegalMoves(MachineState state, Role role)
             throws MoveDefinitionException {
+    	//System.out.println("getLegalMoves: " + role.toString());
     	clearpropnet();	// For some stupid reason, necessary for multithreading
     	markbases(state.getContents());
     	Map<Role, Set<Proposition>> legalPropositions = propNet.getLegalPropositions();
@@ -215,7 +217,8 @@ public class PropNetStateMachine extends StateMachine {
      * @param goalProposition
      * @return the integer value of the goal proposition
      */
-    private int getGoalValue(Proposition goalProposition)
+    @SuppressWarnings("unused")
+	private int getGoalValue(Proposition goalProposition)
     {
     	GdlRelation relation = (GdlRelation) goalProposition.getName();
         GdlConstant constant = (GdlConstant) relation.get(1);
@@ -226,7 +229,7 @@ public class PropNetStateMachine extends StateMachine {
      * A Naive implementation that computes a PropNetMachineState
      * from the true BasePropositions.  This is correct but slower than more advanced implementations
      * You need not use this method!
-     * @return PropNetMachineState
+     * @return MachineState
      */
     public MachineState getStateFromBase()
     {
@@ -290,5 +293,23 @@ public class PropNetStateMachine extends StateMachine {
 		}
 		lastBases = new HashSet<GdlSentence>();
 		lastInputs = new HashSet<GdlSentence>();
+    }
+
+    public void prunepropnet(){
+    	System.out.println("Pruning Propnet !!! # Components: " + propNet.getComponents().size());
+    	clearpropnet();
+    	propNet.getTerminalProposition().flood();
+
+    	for (Component s : propNet.getComponents()){
+    		if(s.isRelevant && s != propNet.getTerminalProposition()){
+    			propNet.removeComponent(s);
+    		}
+    	}
+
+    	// Re crystalize
+    	for (Component c : propNet.getComponents()) {
+			c.crystalize();
+		}
+    	System.out.println("Done Pruning Propnet !!! # Components: " + propNet.getComponents().size());
     }
 }

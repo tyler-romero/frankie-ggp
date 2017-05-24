@@ -1,11 +1,5 @@
 package org.ggp.base.player.gamer.statemachine.frankie;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -73,34 +67,5 @@ public final class FrankieEvaluationFunction {
 
 		// Set
 		reweight(newWeights);
-	}
-
-	public void save(String fileName) throws FileNotFoundException {
-	    PrintWriter pw = new PrintWriter(new FileOutputStream(fileName));
-	    for (FrankieHeuristic h : heuristicList)
-	        pw.println(h.getWeight());
-	    pw.close();
-	}
-
-	public void load(String fileName) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(fileName));
-		String line = null;
-		ArrayList<Double> weights = new ArrayList<Double>();
-
-		// Read in weights
-		while ((line = br.readLine()) != null) {
-			Double d = Double.parseDouble(line);
-			weights.add(d);
-		}
-		br.close();
-
-		// Make sure weights are the right size
-		assert(weights.size() == heuristicList.size());
-
-		// Set weights
-		for(int i = 0; i<heuristicList.size(); i++) {
-			heuristicList.get(i).updateWeight(weights.get(i));
-		}
-
 	}
 }

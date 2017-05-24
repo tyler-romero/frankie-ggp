@@ -10,11 +10,10 @@ import org.ggp.base.util.statemachine.StateMachine;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 
 public class Node {
-	public int visits;
+	public Integer visits;
 	public Node parent;
 	public List<Node> children;
-	public double utility;
-	public double normalizer;
+	public Double utility;
 	public MachineState state;
 	public Move action;
 
