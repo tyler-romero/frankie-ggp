@@ -15,7 +15,6 @@ public abstract class Component implements Serializable
 {
 
 	protected boolean value = false;
-	public boolean isRelevant = false;
 	private static final long serialVersionUID = 352524175700224447L;
 	/** The inputs to the component. */
 	private Set<Component> inputs;
@@ -161,34 +160,6 @@ public abstract class Component implements Serializable
 
 	public abstract void propogate(boolean newValue);
 
-	// See which pieces are upstream from the initial flooded component
-	public void flood() {
-		if(isRelevant) return;
-		isRelevant = true;
-
-		for(Component c: getInputarr()) {
-			c.flood();
-		}
-	}
-
-	// Cut out irrelevant components
-	/*
-	public void prune() {
-		for(Component c: inputs) {
-			if(!c.isRelevant){
-				inputs.remove(c);
-			}
-			else{
-				c.prune();
-			}
-		}
-		for(Component c: outputs) {
-			if(!c.isRelevant){
-				outputs.remove(c);
-			}
-		}
-	}
-	*/
 
 	/**
 	 * Returns a representation of the Component in .dot format.

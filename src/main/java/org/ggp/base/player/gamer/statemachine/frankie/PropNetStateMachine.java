@@ -295,21 +295,4 @@ public class PropNetStateMachine extends StateMachine {
 		lastInputs = new HashSet<GdlSentence>();
     }
 
-    public void prunepropnet(){
-    	System.out.println("Pruning Propnet !!! # Components: " + propNet.getComponents().size());
-    	clearpropnet();
-    	propNet.getTerminalProposition().flood();
-
-    	for (Component s : propNet.getComponents()){
-    		if(s.isRelevant && s != propNet.getTerminalProposition()){
-    			propNet.removeComponent(s);
-    		}
-    	}
-
-    	// Re crystalize
-    	for (Component c : propNet.getComponents()) {
-			c.crystalize();
-		}
-    	System.out.println("Done Pruning Propnet !!! # Components: " + propNet.getComponents().size());
-    }
 }
