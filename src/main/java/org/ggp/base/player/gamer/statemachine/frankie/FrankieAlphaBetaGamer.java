@@ -85,6 +85,7 @@ public class FrankieAlphaBetaGamer extends FrankieGamer {
 		// TODO Auto-generated method stub
 		StateMachine stateMachine = getStateMachine();
 		long start = System.currentTimeMillis();	// Start timer
+		@SuppressWarnings("unused")
 		long finishBy = timeout - 1000;
 
 		roleMap = stateMachine.getRoleIndices();

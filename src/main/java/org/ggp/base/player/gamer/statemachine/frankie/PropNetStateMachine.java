@@ -13,6 +13,7 @@ import org.ggp.base.util.gdl.grammar.GdlRelation;
 import org.ggp.base.util.gdl.grammar.GdlSentence;
 import org.ggp.base.util.propnet.architecture.Component;
 import org.ggp.base.util.propnet.architecture.PropNet;
+import org.ggp.base.util.propnet.architecture.components.Constant;
 import org.ggp.base.util.propnet.architecture.components.Not;
 import org.ggp.base.util.propnet.architecture.components.Proposition;
 import org.ggp.base.util.propnet.factory.OptimizingPropNetFactory;
@@ -35,6 +36,8 @@ public class PropNetStateMachine extends StateMachine {
     private Set<GdlSentence> lastBases;
 	private Set<GdlSentence> lastInputs;
 
+	private Set<Component> constants = new HashSet<Component>();
+	public List<Gdl> description;
 
     /**
      * Initializes the PropNetStateMachine. You should compute the topological
@@ -45,9 +48,12 @@ public class PropNetStateMachine extends StateMachine {
     public void initialize(List<Gdl> description) {
         try {
 			propNet = OptimizingPropNetFactory.create(description);
+
 			for (Component c : propNet.getComponents()) {
 				c.crystalize();
+				if(c instanceof Constant && c.getInputarr().length<1) constants.add(c);
 			}
+			//factor();
 			roles = propNet.getRoles();
 			lastBases = new HashSet<GdlSentence>();
 			lastInputs = new HashSet<GdlSentence>();
@@ -59,7 +65,8 @@ public class PropNetStateMachine extends StateMachine {
 					//System.out.println("" + p.getName());
 				}
 			}
-			factor();
+
+
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -68,6 +75,7 @@ public class PropNetStateMachine extends StateMachine {
     public void factor(){
     	System.out.println("Initial Prop size: " + propNet.getSize());
     	clearpropnet();	// Resets flooding, in case factor is called multiple times
+    	propNet.renderToFile("initialProp.dot");
     	Proposition term = propNet.getTerminalProposition();
     	term.flood();
     	Component[] comps = propNet.getComponents().toArray(new Component[propNet.getComponents().size()]);
@@ -78,6 +86,7 @@ public class PropNetStateMachine extends StateMachine {
     	for (Component c : propNet.getComponents()) {
 			c.crystalize();
 		}
+    	propNet.renderToFile("factoredProp.dot");
     	System.out.println("Factored Size: " + propNet.getSize());
     }
 
@@ -128,6 +137,7 @@ public class PropNetStateMachine extends StateMachine {
 				nexts.add(s);
 		}
 		MachineState initial = new MachineState(nexts);
+		propNet.getInitProposition().setValue(false);
 		propNet.getInitProposition().propogate(false);
 		return initial;
     }
@@ -147,13 +157,18 @@ public class PropNetStateMachine extends StateMachine {
 		List<Move> moves = new ArrayList<Move>(set.size());
 		//System.out.println("propToMoves: " + set.size());
 		for (Proposition p : set) {
-			if (any || p.getValue()) {
+			if (any || markpropv(p)) {
 				moves.add(getMoveFromProposition(p));
 			}
 		}
 		//System.out.println("LegalMoves: " + moves.size());
 		return moves;
 	}
+    private boolean markpropv(Proposition p){
+    	Component input = p.getSingleInput();
+    	if(constants.contains(input)) return input.getValue();
+    	return p.getValue();
+    }
 
     /**
      * Computes the legal moves for role in state.
@@ -166,7 +181,6 @@ public class PropNetStateMachine extends StateMachine {
     	markbases(state.getContents());
     	Map<Role, Set<Proposition>> legalPropositions = propNet.getLegalPropositions();
     	Set<Proposition> legals = legalPropositions.get(role);
-
 		return propToMoves(legals, false);
     }
 
@@ -176,11 +190,12 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public MachineState getNextState(MachineState state, List<Move> moves)
             throws TransitionDefinitionException {
-    	// Moves needs to be converted to a boolean list of input markings
     	markbases(state.getContents());
 		markactions(toDoes(moves));
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
+
 		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
+
 		for (GdlSentence s : bases.keySet()) {
 			if (bases.get(s).getSingleInputarr().getValue()) nexts.add(s);
 		}
@@ -212,6 +227,7 @@ public class PropNetStateMachine extends StateMachine {
 		Map<Role, Integer> roleIndices = getRoleIndices();
 
 		for (int i = 0; i < roles.size(); i++) {
+
 			int index = roleIndices.get(roles.get(i));
 			doeses.add(ProverQueryBuilder.toDoes(roles.get(i), moves.get(index)));
 		}

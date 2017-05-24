@@ -40,13 +40,14 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		timer = new Timer();
 		timer.initTimer(timeout, finishBy);
 
+
 		System.out.println("================= New Game =================");
 		System.out.println(getName());	// Print the agent's name
 
 		stateMachine = getStateMachine();
 		agent = getRole();
 		roles = stateMachine.getRoles();
-		turn = 0;
+		turn = 0;	// Print the agent's name
 
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
@@ -65,6 +66,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		Node root = searchFn.getRoot(currentState);
 		searchFn.MCTS(root);
 		System.out.println("Number of Initial Depth Charges: " + root.visits);
+
+		System.out.println("Moves = " + stateMachine.getLegalMoves(currentState, agent));
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
