@@ -16,6 +16,7 @@ public abstract class Component implements Serializable
 
 	protected boolean value = false;
 	private static final long serialVersionUID = 352524175700224447L;
+	public boolean isValid = false;
 	/** The inputs to the component. */
 	private Set<Component> inputs;
 	/** The outputs of the component. */
@@ -51,6 +52,16 @@ public abstract class Component implements Serializable
 	public void addInput(Component input)
 	{
 		inputs.add(input);
+	}
+
+	public void flood(){
+		if (isValid) return;
+		else{
+			isValid = true;
+			for (Component c : getInputarr()){
+				c.flood();
+			}
+		}
 	}
 
 	public void removeInput(Component input)
