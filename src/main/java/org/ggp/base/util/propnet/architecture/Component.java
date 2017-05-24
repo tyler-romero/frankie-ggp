@@ -56,11 +56,12 @@ public abstract class Component implements Serializable
 
 	public void flood(){
 		if (isValid) return;
-		else{
-			isValid = true;
-			for (Component c : getInputarr()){
-				c.flood();
-			}
+		isValid = true;
+		for (Component c : getInputarr()){
+			c.flood();
+		}
+		for (Component c : getOutputarr()){
+			c.flood();
 		}
 	}
 

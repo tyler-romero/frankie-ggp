@@ -55,7 +55,7 @@ public final class And extends Component
 		value = false;
 		lastPropogation = false;
 		numTrue = 0;
-		isRelevant = false;
+		isValid = false;
 	}
 
     /**

@@ -63,7 +63,7 @@ public final class Or extends Component
 		value = false;
 		lastPropogation = false;
 		numTrue = 0;
-		isRelevant = false;
+		isValid = false;
 	}
     /**
      * @see org.ggp.base.util.propnet.architecture.Component#toString()

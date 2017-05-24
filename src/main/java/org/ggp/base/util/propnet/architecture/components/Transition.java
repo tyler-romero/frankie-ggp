@@ -45,7 +45,7 @@ public final class Transition extends Component
 	public void reset() {
     	lastPropogation = false;
 		value = false;
-		isRelevant = false;
+		isValid = false;
 	}
 
     /**

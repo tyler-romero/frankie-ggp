@@ -46,7 +46,7 @@ public final class Constant extends Component
 
 	@Override
 	public void reset() {
-		isRelevant = false;
+		isValid = false;
 	}
 
 	@Override

@@ -58,7 +58,6 @@ public class PropNetStateMachine extends StateMachine {
 					p.base = true;
 					//System.out.println("" + p.getName());
 				}
-
 			}
 			factor();
         } catch (InterruptedException e) {
@@ -68,11 +67,13 @@ public class PropNetStateMachine extends StateMachine {
 
     public void factor(){
     	System.out.println("Initial Prop size: " + propNet.getSize());
+    	clearpropnet();	// Resets flooding, in case factor is called multiple times
     	Proposition term = propNet.getTerminalProposition();
     	term.flood();
     	Component[] comps = propNet.getComponents().toArray(new Component[propNet.getComponents().size()]);
     	for (Component c : comps) {
-			if(!c.isValid) propNet.removeComponent(c);
+			if(!c.isValid)
+				propNet.removeComponent(c);
 		}
     	for (Component c : propNet.getComponents()) {
 			c.crystalize();

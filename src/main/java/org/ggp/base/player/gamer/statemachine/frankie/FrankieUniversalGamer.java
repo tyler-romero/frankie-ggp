@@ -62,9 +62,9 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		MachineState currentState = getCurrentState();
 		assert(currentState != null);
 
-		//Node root = searchFn.getRoot(currentState);
-		//searchFn.MCTS(root);
-		//System.out.println("Number of Initial Depth Charges: " + root.visits);
+		Node root = searchFn.getRoot(currentState);
+		searchFn.MCTS(root);
+		System.out.println("Number of Initial Depth Charges: " + root.visits);
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
