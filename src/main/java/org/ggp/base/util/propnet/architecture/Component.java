@@ -61,6 +61,9 @@ public abstract class Component implements Serializable
 			for (Component c : getInputarr()){
 				c.flood();
 			}
+			for (Component c : getOutputarr()){
+				c.flood();
+			}
 		}
 	}
 
