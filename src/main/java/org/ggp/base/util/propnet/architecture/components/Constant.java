@@ -57,6 +57,11 @@ public final class Constant extends Component
 	}
 
 	@Override
+   	public boolean propmark(){
+		return value;
+    }
+
+	@Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
 		file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
 		for (Component c : getOutputarr()) {

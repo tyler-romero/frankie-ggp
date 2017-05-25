@@ -27,7 +27,11 @@ public final class Transition extends Component
 		}
     }
 
-
+	@Override
+   	public boolean propmark(){
+		Component c = getSingleInputarr();
+		return c.propmark();
+    }
 
     @Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {

@@ -171,6 +171,7 @@ public abstract class Component implements Serializable
 	}
 
 	public abstract void propogate(boolean newValue);
+	public abstract boolean propmark();
 
 
 	/**

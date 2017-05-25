@@ -31,7 +31,8 @@ public class StateMachineVerifier {
                 try {
                     theCurrentStates[i] = theMachines.get(i).getInitialState();
                 } catch(Exception e) {
-                    GamerLogger.log("StateMachine", "Machine #" + i + " failed to generate an initial state!");
+                	GamerLogger.log("StateMachine", "Machine #" + i + " failed to generate an initial state!");
+                	e.printStackTrace();
                     return false;
                 }
             }

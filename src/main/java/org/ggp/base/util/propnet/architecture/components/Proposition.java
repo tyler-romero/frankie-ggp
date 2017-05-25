@@ -62,6 +62,13 @@ public final class Proposition extends Component {
 	}
 
 	@Override
+   	public boolean propmark(){
+		if (base) return value;
+		Component c = getSingleInputarr();
+		return c.propmark();
+    }
+
+	@Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
 		file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
 		if (base) {

@@ -12,6 +12,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
+
 public class MonteCarloTreeSearch {
 	StateMachine stateMachine;
 	Timer timer;
@@ -236,62 +237,128 @@ class MultiPlayerMonteCarloTreeSearch extends MonteCarloTreeSearch{
 	}
 }
 
-
-class ParallelMultiPlayerMonteCarloTreeSearch extends MonteCarloTreeSearch{
-	// Uses a mutex on the tree for updating
-	DepthChargeManager dmManager;
-
-	ParallelMultiPlayerMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> machines) {
+/*
+class RAVEMultiPlayerMonteCarloTreeSearch extends MonteCarloTreeSearch{
+	RAVEMultiPlayerMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
-		System.out.println("ParallelMultiPlayerMonteCarloTreeSearch");
-		dmManager = new DepthChargeManager(machines, agent);
+		System.out.println("RAVEMultiPlayerMonteCarloTreeSearch");
 	}
 
 	@Override
 	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException {
 		while(!timer.isOutOfTime()) {
-			Node node_to_expand = select(root);
+			List<Pair<MachineState, Move>> tree_history = select(root);
 			Node node_to_evaluate = expand(node_to_expand);
-			List<Integer> scores = simulateParallel(node_to_evaluate);
 
-			int scoreSum = 0;
-			for(int score: scores){
-				scoreSum += score;
+			Pair<List<Move>, Double> playout = simulate(node_to_evaluate.state);
+			List<Move> random_history = playout.left;
+			Double score = playout.right;
+			Pair<List<MachineState>, List<Move>> history = reorganize(tree_history, random_history);
+			backprop(history, score);
+		}
+	}
+
+	Node select(Node node) throws MoveDefinitionException {
+		//System.out.println("select");
+		if(node.children.size() == 0) return node;
+		if(node.visits == 0) return node;
+
+		// Evenly search each child to an arbitrary threshold
+		for(Node child : node.children){
+			if(child.visits==0)
+				return child;
+		}
+
+		// Some epsilon greediness to help exploration
+		Node result = null;
+		if(randomizer.nextDouble() < 0.05){
+			result = node.children.get(randomizer.nextInt(node.children.size()));
+			select(result);
+		}
+
+		// If all children have been visited, select a child to recurse on
+		double score = -Double.MAX_VALUE;
+		for(Node child : node.children){
+			double newscore = selectfn(child);
+			if (newscore > score) {
+				score = newscore;
+				result = child;
 			}
-
-			backpropParallel(node_to_evaluate, scoreSum, scores.size());
 		}
-	}
-
-	List<Integer> simulateParallel(Node node) throws MoveDefinitionException, TransitionDefinitionException {
-		return dmManager.performDepthCharges(node.state);
-	}
-
-	void backpropParallel(Node node, int scoreSum, int newVisits) {
-		node.visits = node.visits + newVisits;
-		node.utility = node.utility + scoreSum;
-		if(node.parent != null)
-			backpropParallel(node.parent, scoreSum, newVisits);
+		return select(result);
 	}
 
 	@Override
+	void expand(MachineState state) throws MoveDefinitionException, TransitionDefinitionException {
+		// NEWNODE
+		// First check if this node is a terminal node. If it is, return it.
+		if (stateMachine.isTerminal(node.state)) {
+			return node;
+		}
+
+		// Create child nodes from all joint legal moves. NOTE: could be expensive
+		List<Move> actions = stateMachine.findLegals(agent, node.state);
+
+		for(Move action: actions) {
+			List<List<Move>> joint_move_list = stateMachine.getLegalJointMoves(node.state, agent, action);
+			for(List<Move> joint_move : joint_move_list) {
+				MachineState newstate = stateMachine.getNextState(node.state, joint_move);
+				Node newnode = new Node(newstate, node, action);
+				node.children.add(newnode);
+			}
+		}
+	}
+
+	Pair<List<Move>, Double> simulate(MachineState state) throws MoveDefinitionException, TransitionDefinitionException {
+		//TODO: modify to keep track of move history
+		double reward = 0.0;
+		List<Move> history = null;
+		MachineState mcFinalState = stateMachine.performDepthCharge(state, null);
+		try{
+			reward = stateMachine.findReward(agent, mcFinalState);
+		}
+		catch (GoalDefinitionException e){
+			System.out.println("GoalDefinitionException in Monte Carlo");
+		}
+		return Pair.of(history, reward);
+	}
+
+	Pair<List<MachineState>, List<Move>> reorganize(List<Pair<MachineState, Move>> tree_history, List<Move> random_history){
+		List<MachineState> states = new ArrayList<MachineState>(tree_history.size());
+		List<Move> actions = new ArrayList<Move>(tree_history.size() + random_history.size());
+		for(Pair<MachineState, Move> pair: tree_history){
+			states.add(pair.left);
+			actions.add(pair.right);
+		}
+		for(Move move: random_history){
+			actions.add(move);
+		}
+		return Pair.of(states, actions);
+	}
+
+	private
+	void backprop(Pair<List<MachineState>, List<Move>> history, double score) {
+		List<MachineState> states = history.left;
+		List<Move> actions = history.right;
+		for(int t = 0; t<states.size(); t++){
+			// N(st, at) ++
+			// Q(st, at) += (score-Q(st, at))/N(st,at)
+			for(int u = t; u<actions.size(); u++){
+				//if(au not in [at, at+2, ..., au-2)]) {
+				N_bar(st, au)++
+				Q_bar(st, au) += (score-Q_bar(st, at))/N_bar(st,at)
+			}
+		}
+	}
+
 	protected
-	double selectfn(Node node) throws MoveDefinitionException{
-		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
-		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - Math.sqrt(Math.log(2*node.parent.visits)/node.visits));
-		}
-		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
+	double selectfn(MachineState s, Move a) throws MoveDefinitionException{
+		double b = 2;	//pretuned bias value
+		double beta = N_bar(s, a)/(N(s,a)+N_bar(s,a)+4N(s,a)N_bar(s,a)b^2);
+		return (1-beta)Q(s,a) + beta(Q_bar(s,a))
 	}
-
-	@Override
-	protected void backprop(Node node, double score) throws MoveDefinitionException {
-		assert(false);
-	}
-
 }
-
+*/
 
 class BetterMultiThreadedMultiPlayerMonteCarloTreeSearch extends MonteCarloTreeSearch{
 	// Depending on the game could be faster or slower than single threaded version.

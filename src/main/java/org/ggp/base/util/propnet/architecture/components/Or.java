@@ -39,6 +39,15 @@ public final class Or extends Component
     }
 
     @Override
+   	public boolean propmark(){
+       	for (Component c : getInputarr()){
+       		if (c.propmark())
+       			return true;
+   		}
+       	return false;
+    }
+
+    @Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
     	file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
     	file.append("boolean next = ");

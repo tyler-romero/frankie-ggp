@@ -36,6 +36,12 @@ public final class Not extends Component
 	}
 
 	@Override
+   	public boolean propmark(){
+		Component c = getSingleInputarr();
+       	return !c.propmark();
+    }
+
+	@Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
 		file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
 		file.append("boolean next = ");
