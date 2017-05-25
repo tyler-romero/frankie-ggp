@@ -32,6 +32,7 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	public StateMachine getInitialStateMachine() {
 		StateMachine prover = new CachedStateMachine(new ProverStateMachine());
 		prover.initialize(getMatch().getGame().getRules());
+
 		//StateMachine propnet = new CachedStateMachine(new PropNetStateMachine());
 		StateMachine propnet = new CachedStateMachine(new SimplePropNetStateMachine());
 		propnet.initialize(getMatch().getGame().getRules());
@@ -39,9 +40,11 @@ public abstract class FrankieGamer extends StateMachineGamer {
 		boolean isConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 1000);
 
 		if(isConsistant) {
+			propnet.initialize(getMatch().getGame().getRules());
 			System.out.println("Using PropNetStateMachine");
 			statemachinetype = "PropNetStateMachine";
 			return propnet;
+
 		} else {
 			System.out.println("Using ProverStateMachine");
 			statemachinetype = "ProverStateMachine";

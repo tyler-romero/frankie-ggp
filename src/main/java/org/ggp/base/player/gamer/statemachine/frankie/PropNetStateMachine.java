@@ -53,41 +53,63 @@ public class PropNetStateMachine extends StateMachine {
 				c.crystalize();
 				if(c instanceof Constant && c.getInputarr().length<1) constants.add(c);
 			}
-			//factor();
 			roles = propNet.getRoles();
-			lastBases = new HashSet<GdlSentence>();
-			lastInputs = new HashSet<GdlSentence>();
-			Collection<Proposition> bases = propNet.getBasePropositions().values();
-			Collection<Proposition> inputs = propNet.getInputPropositions().values();
-			for (Proposition p : propNet.getPropositions()) {
-				if (bases.contains(p) || inputs.contains(p)) {
-					p.base = true;
-					//System.out.println("" + p.getName());
-				}
-			}
 
+			initPropnetVars();
 
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void factor(){
+    private void initPropnetVars(){
+    	lastBases = new HashSet<GdlSentence>();
+		lastInputs = new HashSet<GdlSentence>();
+		Collection<Proposition> bases = propNet.getBasePropositions().values();
+		Collection<Proposition> inputs = propNet.getInputPropositions().values();
+		for (Proposition p : propNet.getPropositions()) {
+			if (bases.contains(p) || inputs.contains(p)) {
+				p.base = true;
+			}
+		}
+    }
+
+    public int factor(){
+    	int initial = propNet.getSize();
     	System.out.println("Initial Prop size: " + propNet.getSize());
     	clearpropnet();	// Resets flooding, in case factor is called multiple times
     	propNet.renderToFile("initialProp.dot");
     	Proposition term = propNet.getTerminalProposition();
+    	Set<Proposition> legals = propNet.getLegalPropositions().get(roles.get(0));
+    	Proposition[] legArr = legals.toArray(new Proposition[legals.size()]);
+    	Map<Proposition,Proposition> legIn = propNet.getLegalInputMap();
     	term.flood();
+    	for (Proposition l: legals){
+    		l.flood();
+    	}
     	Component[] comps = propNet.getComponents().toArray(new Component[propNet.getComponents().size()]);
     	for (Component c : comps) {
 			if(!c.isValid)
 				propNet.removeComponent(c);
 		}
+    	for (Proposition l : legArr){
+    		if(!legIn.containsKey(l)) propNet.removeComponent(l);
+    	}
     	for (Component c : propNet.getComponents()) {
 			c.crystalize();
 		}
     	propNet.renderToFile("factoredProp.dot");
     	System.out.println("Factored Size: " + propNet.getSize());
+    	Set<Proposition> faclegals = propNet.getLegalPropositions().get(roles.get(0));
+    	initPropnetVars();
+    	try {
+			System.out.println("Factored moves: " + findActions(roles.get(0)) );
+		} catch (MoveDefinitionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+    	return initial - propNet.getSize();
     }
 
     /**

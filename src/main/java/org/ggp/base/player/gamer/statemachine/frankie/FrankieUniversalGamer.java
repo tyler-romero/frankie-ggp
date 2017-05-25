@@ -61,13 +61,13 @@ public class FrankieUniversalGamer extends FrankieGamer {
 
 		// Start computing the game tree during meta game
 		MachineState currentState = getCurrentState();
+		System.out.println("All Moves = " + stateMachine.findActions(agent));
+		System.out.println("Current Moves = " + stateMachine.getLegalMoves(currentState, agent));
 		assert(currentState != null);
 
 		Node root = searchFn.getRoot(currentState);
 		searchFn.MCTS(root);
 		System.out.println("Number of Initial Depth Charges: " + root.visits);
-
-		System.out.println("Moves = " + stateMachine.getLegalMoves(currentState, agent));
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
