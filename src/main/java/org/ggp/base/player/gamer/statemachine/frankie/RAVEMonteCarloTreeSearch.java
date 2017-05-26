@@ -16,7 +16,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
+public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 	Map<Pair<MachineState, List<Move>>, Integer> N_bar;
 	Map<Pair<MachineState, List<Move>>, Integer> N;
 	Map<Pair<MachineState, List<Move>>, Double> Q_bar;
@@ -25,13 +25,14 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 
 	List<MachineState> stateHistory;
 	List<List<Move>> jointActionHistory;
+	Map<Role, List<List<Move>>> playersActionHistory;
 
 	// Settings
 	static double b = 0.00001; // bias parameter
-	static double C = 1.0;	// optimism parameter
 
 	RAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
+		System.out.println("RAVE");
 		N_bar = new HashMap<Pair<MachineState, List<Move>>, Integer>();
 		N = new HashMap<Pair<MachineState, List<Move>>, Integer>();
 		Q_bar = new HashMap<Pair<MachineState, List<Move>>, Double>();
@@ -39,6 +40,10 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 		visits = new HashMap<MachineState, Integer>();
 		stateHistory = new ArrayList<MachineState>();
 		jointActionHistory = new ArrayList<List<Move>>();
+		playersActionHistory = new HashMap<Role, List<List<Move>>>();
+		for(Role player: roles){
+			playersActionHistory.put(player, new ArrayList<List<Move>>());
+		}
 	}
 
 
@@ -58,6 +63,8 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 		while(!timer.isOutOfTime()) {
 			stateHistory.clear();
 			jointActionHistory.clear();
+			for(Role player: roles) playersActionHistory.get(player).clear();
+
 			simTree(root);
 			Double score = simDefault();
 			backup(score);
@@ -126,6 +133,10 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 		return (stateMachine.findLegals(agent, state).size() == 1);
 	}
 
+	boolean isTurn(Role role, MachineState state) throws MoveDefinitionException {
+		return (stateMachine.findLegals(role, state).size() > 1);
+	}
+
 	boolean newNode(MachineState state) throws MoveDefinitionException{
 		visits.put(state, 0);
 		List<Move> actions = stateMachine.findLegals(agent, state);
@@ -133,7 +144,7 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 			List<List<Move>> jointMoves = stateMachine.getLegalJointMoves(state, agent, action);
 			for(List<Move> jointAction : jointMoves) {
 				Pair<MachineState, List<Move>> sa = Pair.of(state, jointAction);
-				//Implement heuristic init here
+				//Implement heuristic init here. Currently uses even game heuristic
 				N_bar.put(sa, 50);
 				N.put(sa, 50);
 				Q_bar.put(sa, 50.0);
@@ -173,7 +184,11 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 		double reward = 50;
 		while(!stateMachine.isTerminal(state)) {
 			List<Move> jointAction = stateMachine.getRandomJointMove(state);
-			jointActionHistory.add(jointAction);
+			for(Role player: roles){
+				if(isTurn(player, state)){	// Only logs playout move if that player had more than one option
+					playersActionHistory.get(player).add(jointAction);
+				}
+			}
             state = stateMachine.getNextState(state, jointAction);
         }
 
@@ -195,17 +210,20 @@ public class RAVEMonteCarloTreeSearch extends MonteCarloTreeSearch{
 			double deltaQ = (score - Q.get(stat))/N.get(stat);
 			Q.put(stat, Q.get(stat) + deltaQ);
 
-			Collection<List<Move>> updatedJointActions = new HashSet<List<Move>>();
-			for(int u = t; u<jointActionHistory.size(); u += 2){	// For each of the random playout actions ?
-				List<Move> jointAction = jointActionHistory.get(u);
-				if(!updatedJointActions.contains(jointAction)){
-					Pair<MachineState, List<Move>> stau = Pair.of(stateHistory.get(t), jointAction);
-					N_bar.put(stau,  N_bar.getOrDefault(stau, 0) + 1);
-					deltaQ = (score - Q_bar.getOrDefault(stat, 50.0))/N_bar.get(stat);
-					Q_bar.put(stau, Q_bar.get(stat) + deltaQ);
-					updatedJointActions.add(jointAction);
+			for(Role player: roles){
+				List<List<Move>> playerHistory = playersActionHistory.get(player);
+				Collection<List<Move>> updatedJointActions = new HashSet<List<Move>>();
+				for(List<Move> jointAction: playerHistory){	// For each of the random playout actions ?
+					if(!updatedJointActions.contains(jointAction)){
+						Pair<MachineState, List<Move>> stau = Pair.of(stateHistory.get(t), jointAction);
+						N_bar.put(stau,  N_bar.getOrDefault(stau, 0) + 1);
+						deltaQ = (score - Q_bar.getOrDefault(stat, 50.0))/N_bar.get(stat);
+						Q_bar.put(stau, Q_bar.get(stat) + deltaQ);
+						updatedJointActions.add(jointAction);
+					}
 				}
 			}
 		}
 	}
+
 }

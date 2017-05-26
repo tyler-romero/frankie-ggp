@@ -37,8 +37,8 @@ public abstract class FrankieGamer extends StateMachineGamer {
 		StateMachine simplepropnet = new CachedStateMachine(new PropNetStateMachine());
 		simplepropnet.initialize(getMatch().getGame().getRules());
 
-		boolean isPropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 500);
-		boolean isSimplePropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, simplepropnet, 500);
+		boolean isPropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 2500);
+		boolean isSimplePropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, simplepropnet, 2500);
 
 		if(isPropNetConsistant && isSimplePropNetConsistant){
 			System.out.println("PropNet Speed Test:");

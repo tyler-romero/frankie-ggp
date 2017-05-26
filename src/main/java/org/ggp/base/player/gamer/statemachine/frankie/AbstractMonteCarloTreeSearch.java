@@ -13,22 +13,42 @@ import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
 
-public class MonteCarloTreeSearch {
+public abstract class AbstractMonteCarloTreeSearch {
 	StateMachine stateMachine;
 	Timer timer;
 	Role agent;
-	Random randomizer = new Random();
-	Node root = null;
 	List<Role> roles;
-	boolean metagaming = true;
 
+	static double C;
 
-	MonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
+	AbstractMonteCarloTreeSearch(StateMachine sm, Role a, Timer t){
 		stateMachine = sm;
 		agent = a;
 		timer = t;
 		roles = stateMachine.getRoles();
+		// Settings
+		C = 1.0; // optimism parameter
+	}
 
+	public abstract Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException;
+
+	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException{
+		throw new Error();
+	}
+
+	public void MCTS(MachineState root) throws MoveDefinitionException, TransitionDefinitionException{
+		throw new Error();
+	}
+}
+
+class MonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
+
+	Random randomizer = new Random();
+	Node root = null;
+	boolean metagaming = true;
+
+	MonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
+		super(sm, a, t);
 		System.out.println("MonteCarloTreeSearch");
 	}
 
@@ -39,9 +59,7 @@ public class MonteCarloTreeSearch {
 			return root;
 		}
 
-		if(metagaming){
-			return root;	// Return the root that was expanded during metagaming
-		}
+		if(metagaming)	return root;	// Return the root that was expanded during metagaming
 
 		for(Node child: root.children) {
 			if(child.state.equals(currentState)) {
@@ -55,6 +73,7 @@ public class MonteCarloTreeSearch {
 		return root;
 	}
 
+	@Override
 	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
 		root = getRoot(currentState);
 		if(metagaming) metagaming = false;
@@ -91,6 +110,7 @@ public class MonteCarloTreeSearch {
 		return bestAction;
 	}
 
+	@Override
 	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException {
 		while(!timer.isOutOfTime()) {
 			Node node_to_expand = select(root);
@@ -102,10 +122,6 @@ public class MonteCarloTreeSearch {
 			backprop(node_to_evaluate, score);
 		}
 	}
-
-	public void MCTS(MachineState root) throws MoveDefinitionException, TransitionDefinitionException{
-		return;
-	};
 
 	Node select(Node node) throws MoveDefinitionException {
 		//System.out.println("select");
@@ -141,10 +157,10 @@ public class MonteCarloTreeSearch {
 	double selectfn(Node node) throws MoveDefinitionException{
 		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
 		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - Math.sqrt(Math.log(2*node.parent.visits)/node.visits));
+			return -1*(node.get_value() - C*Math.sqrt(Math.log(node.parent.visits)/node.visits));
 		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
+		return node.get_value() + C*Math.sqrt(Math.log(node.parent.visits)/node.visits);
 	}
 
 	Node expand(Node node) throws MoveDefinitionException, TransitionDefinitionException {
@@ -251,21 +267,10 @@ class MultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
 		if(node.parent != null)
 			backpropParallel(node.parent, scoreSum, newVisits);
 	}
-
-	@Override
-	protected
-	double selectfn(Node node) throws MoveDefinitionException{
-		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
-		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - Math.sqrt(Math.log(2*node.parent.visits)/node.visits));
-		}
-		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
-	}
 }
 
 
-class BetterMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
+class BetterMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	// Depending on the game could be faster or slower than single threaded version.
 	static int nThreads;
 	List<StateMachine> machines;
@@ -315,11 +320,10 @@ class BetterMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
 	}
 
 	@Override
-	public
-	void MCTS(Node root) {
+	public void MCTS(Node root) {
 		List<MCTSThread> threads = new ArrayList<MCTSThread>();
 		for(int i = 0; i<nThreads; i++){
-			MCTSThread mctsThread = new MCTSThread(machines.get(i), agent, timer, root);
+			MCTSThread mctsThread = new MCTSThread(machines.get(i), agent, timer, root, C);
 			mctsThread.start();
 			threads.add(mctsThread);
 		}

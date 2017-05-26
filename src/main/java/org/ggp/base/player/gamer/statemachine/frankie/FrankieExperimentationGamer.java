@@ -23,7 +23,7 @@ public class FrankieExperimentationGamer extends FrankieGamer {
 	private List<Role> roles;
 	private StateMachine stateMachine;
 	private Timer timer;
-	private MonteCarloTreeSearch searchFn;
+	private RAVEMonteCarloTreeSearch searchFn;
 
 	private int turn;
 

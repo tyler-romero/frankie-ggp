@@ -17,12 +17,14 @@ public class MCTSThread extends Thread {
 	StateMachine stateMachine;
 	Role agent;
 	Random randomizer = new Random();
+	double C;
 
-	MCTSThread(StateMachine sm, Role a, Timer t, Node r){
+	MCTSThread(StateMachine sm, Role a, Timer t, Node r, double explorationConstant){
 		stateMachine = sm;
 		agent = a;
 		timer = t;
 		root = r;
+		C = explorationConstant;
 	}
 
 	@Override
@@ -76,10 +78,10 @@ public class MCTSThread extends Thread {
 	double selectfn(Node node) throws MoveDefinitionException{
 		// A formula based on Lower Confidence Bounds (How pessimistic we are when its our opponents turn)
 		if(node.parent.isMin(stateMachine, agent)){
-			return -1*(node.get_value() - Math.sqrt(Math.log(2*node.parent.visits)/node.visits));
+			return -1*(node.get_value() - C*Math.sqrt(Math.log(node.parent.visits)/node.visits));
 		}
 		// A formula based on Upper Confidence Bounds (How optimistic we are when its our turn)
-		return node.get_value() + Math.sqrt(Math.log(2*node.parent.visits)/node.visits);
+		return node.get_value() + C*Math.sqrt(Math.log(node.parent.visits)/node.visits);
 	}
 
 	Node expand(Node node) throws MoveDefinitionException, TransitionDefinitionException {
