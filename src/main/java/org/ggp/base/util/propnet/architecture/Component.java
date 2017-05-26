@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.ggp.base.util.propnet.architecture.components.Proposition;
+
 /**
  * The root class of the Component hierarchy, which is designed to represent
  * nodes in a PropNet. The general contract of derived classes is to override
@@ -113,7 +115,15 @@ public abstract class Component implements Serializable
 	}
 
 	public Component getSingleInputarr() {
-		assert inputarr.length == 1;
+		if(inputarr.length != 1){
+			System.out.println("Input size is not 1 (it is size " + inputarr.length + ")");
+			if(this instanceof Proposition){
+				System.out.println("This is a proposition with name " + ((Proposition)this).getName());
+				if(((Proposition)this).base){
+					System.out.println("This is a proposition is a base");
+				}
+			}
+		}
 		return inputarr[0];
 	}
 

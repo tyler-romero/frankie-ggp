@@ -14,7 +14,7 @@ public class StateMachineVerifier {
     public static boolean checkMachineConsistency(StateMachine theReference, StateMachine theSubject, long timeToSpend) {
         long startTime = System.currentTimeMillis();
 
-        GamerLogger.log("StateMachine", "Performing automatic consistency testing on " + theSubject.getClass().getName() + " using " + theReference.getClass().getName() + " as a reference.");
+        //GamerLogger.log("StateMachine", "Performing automatic consistency testing on " + theSubject.getClass().getName() + " using " + theReference.getClass().getName() + " as a reference.");
 
         List<StateMachine> theMachines = new ArrayList<StateMachine>();
         theMachines.add(theReference);
@@ -91,7 +91,7 @@ public class StateMachineVerifier {
 
                     try {
                         if(theMachines.get(i).getGoal(theCurrentStates[i], theRole) != theMachines.get(0).getGoal(theCurrentStates[0], theRole)) {
-                            GamerLogger.log("StateMachine", "Inconsistency between machine #" + i + " and ProverStateMachine over goal value for " + theRole + " of state " + theCurrentStates[0] + ": " + theMachines.get(i).getGoal(theCurrentStates[i], theRole) + " vs " + theMachines.get(0).getGoal(theCurrentStates[0], theRole));
+                            GamerLogger.log("StateMachine", "Inconsistency between machine #" + i + " and ProverStateMachine over goal value for " + theRole + " of states " + theCurrentStates[0] + "~" + theCurrentStates[1] + ": " + theMachines.get(i).getGoal(theCurrentStates[i], theRole) + " vs " + theMachines.get(0).getGoal(theCurrentStates[0], theRole));
                             return false;
                         }
                     } catch(Exception e) {
@@ -103,7 +103,7 @@ public class StateMachineVerifier {
         }
         GamerLogger.emitToConsole("]\n");
 
-        GamerLogger.log("StateMachine", "Completed automatic consistency testing on " + theSubject.getClass().getName() + ", w/ " + nRound + " rounds: all tests pass!");
+        GamerLogger.log("StateMachine", "All tests pass!");
         return true;
     }
 }

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.ggp.base.player.gamer.statemachine.frankie.Timer;
 import org.ggp.base.util.gdl.grammar.Gdl;
 import org.ggp.base.util.gdl.grammar.GdlConstant;
 import org.ggp.base.util.gdl.grammar.GdlSentence;
@@ -487,4 +488,27 @@ public abstract class StateMachine
             avgScores[j] /= repetitions;
         }
     }
+
+    public double performSpeedTest(int duration) {
+    	MachineState initState = getInitialState();
+		long start = System.currentTimeMillis();	// Start timer
+		long testTime = start + duration;
+		Timer speedTestTimer = new Timer();
+		speedTestTimer.initTimer(0, testTime);
+		int count = 0;
+		try {
+			while(!speedTestTimer.isOutOfTime()) {
+				count ++;
+				performDepthChargeLite(initState);
+			}
+		} catch (Exception e){
+			e.printStackTrace();
+			return -1;
+		}
+
+		double chargesPerSec = 1000 * count / ((double)duration);
+		System.out.println(" - Charges Per Second: " + chargesPerSec);
+
+		return chargesPerSec;
+	}
 }

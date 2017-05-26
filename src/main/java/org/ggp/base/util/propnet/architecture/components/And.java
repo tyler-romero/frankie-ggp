@@ -33,8 +33,9 @@ public final class And extends Component
     @Override
 	public boolean propmark(){
     	for (Component c : getInputarr()){
-    		if (!c.propmark())
+    		if (!c.propmark()){
     			return false;
+    		}
 		}
     	return true;
     }

@@ -32,19 +32,38 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	public StateMachine getInitialStateMachine() {
 		StateMachine prover = new CachedStateMachine(new ProverStateMachine());
 		prover.initialize(getMatch().getGame().getRules());
-
-		//StateMachine propnet = new CachedStateMachine(new PropNetStateMachine());
 		StateMachine propnet = new CachedStateMachine(new SimplePropNetStateMachine());
 		propnet.initialize(getMatch().getGame().getRules());
+		StateMachine simplepropnet = new CachedStateMachine(new PropNetStateMachine());
+		simplepropnet.initialize(getMatch().getGame().getRules());
 
-		boolean isConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 1000);
+		boolean isPropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 500);
+		boolean isSimplePropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, simplepropnet, 500);
 
-		if(isConsistant) {
-			propnet.initialize(getMatch().getGame().getRules());
+		if(isPropNetConsistant && isSimplePropNetConsistant){
+			System.out.println("PropNet Speed Test:");
+			double propnetSpeed = propnet.performSpeedTest(2500);
+			System.out.println("SimplePropNet Speed Test:");
+			double simplePropnetSpeed = simplepropnet.performSpeedTest(2500);
+
+			if(propnetSpeed > simplePropnetSpeed) {
+				System.out.println("Using PropNetStateMachine");
+				statemachinetype = "PropNetStateMachine";
+				return propnet;
+			} else{
+				System.out.println("Using SimplePropNetStateMachine");
+				statemachinetype = "SimplePropNetStateMachine";
+				return simplepropnet;
+			}
+		} else if (isPropNetConsistant) {
+			System.out.println("SimplePropNetStateMachine is not consistant");
 			System.out.println("Using PropNetStateMachine");
 			statemachinetype = "PropNetStateMachine";
 			return propnet;
-
+		} else if (isSimplePropNetConsistant) {
+			 System.out.println("Using SimplePropNetStateMachine");
+			statemachinetype = "SimplePropNetStateMachine";
+			return simplepropnet;
 		} else {
 			System.out.println("Using ProverStateMachine");
 			statemachinetype = "ProverStateMachine";
@@ -60,7 +79,14 @@ public abstract class FrankieGamer extends StateMachineGamer {
 
 	@Override
 	public void stateMachineStop() {
-		// Frankie does no special cleanup when the match ends normally.
+		// Cleanup when the match ends normally
+		try {
+			int reward = getStateMachine().getGoal(getCurrentState(), getRole());
+			System.out.println("Game over. Final Reward: " + reward);
+
+		} catch (GoalDefinitionException e) {
+			System.out.println("Goal Definition Exception: Failed to retrive final reward");
+		}
 	}
 
 	@Override
@@ -72,5 +98,4 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	public void preview(Game g, long timeout) throws GamePreviewException {
 		// Frankie does no game previewing.
 	}
-
 }

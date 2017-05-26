@@ -3,10 +3,8 @@ package org.ggp.base.player.gamer.statemachine.frankie;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.ggp.base.util.gdl.grammar.Gdl;
@@ -27,6 +25,8 @@ import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 import org.ggp.base.util.statemachine.implementation.prover.query.ProverQueryBuilder;
 
 public class SimplePropNetStateMachine extends StateMachine {
+	// This implementation uses backprop and is very very slow
+
 	 /** The underlying proposition network  */
     private PropNet propNet;
     /** The player roles */
@@ -41,21 +41,27 @@ public class SimplePropNetStateMachine extends StateMachine {
     public void initialize(List<Gdl> description) {
         try {
 			propNet = OptimizingPropNetFactory.create(description);
-			propNet.renderToFile("propnet.dot");
+			//propNet.renderToFile("propnet.dot");
+			roles = propNet.getRoles();
+			initPropnetVars();
 			for (Component c : propNet.getComponents()) {
 				c.crystalize();
-			}
-			roles = propNet.getRoles();
-			Collection<Proposition> bases = propNet.getBasePropositions().values();
-			Collection<Proposition> inputs = propNet.getInputPropositions().values();
-			for (Proposition p : propNet.getPropositions()) {
-				if (bases.contains(p) || inputs.contains(p)) {
-					p.base = true;
-				}
 			}
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void initPropnetVars(){
+		Collection<Proposition> bases = propNet.getBasePropositions().values();
+		Collection<Proposition> inputs = propNet.getInputPropositions().values();
+		Proposition init = propNet.getInitProposition();
+		init.base = true;
+		for (Proposition p : propNet.getPropositions()) {
+			if (bases.contains(p) || inputs.contains(p)) {
+				p.base = true;
+			}
+		}
     }
 
 
@@ -78,12 +84,14 @@ public class SimplePropNetStateMachine extends StateMachine {
      * GoalDefinitionException because the goal is ill-defined.
      */
     @Override
-    public int getGoal(MachineState state, Role role)
-            throws GoalDefinitionException {
+    public int getGoal(MachineState state, Role role) throws GoalDefinitionException {
+    	clearpropnet();
     	markbases(state.getContents());
     	Set<Proposition> goals = propNet.getGoalPropositions().get(role);
+
     	for (Proposition p : goals) {
-			if (p.propmark()) return Integer.parseInt(p.getName().get(1).toString());
+			if (p.propmark())
+				return getGoalValue(p);
 		}
 		throw new GoalDefinitionException(state, role);
     }
@@ -95,32 +103,9 @@ public class SimplePropNetStateMachine extends StateMachine {
      */
     @Override
     public MachineState getInitialState() {
-    	//System.out.println("GetInitialState");
-    	/*
     	clearpropnet();
     	propNet.getInitProposition().setValue(true);
-
-		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
-		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
-		for (GdlSentence s : bases.keySet()) {
-			if (bases.get(s).getSingleInputarr().propmark())
-				nexts.add(s);
-		}
-		MachineState initial = new MachineState(nexts);
-		return initial;
-		*/
-    	clearpropnet();
-    	propNet.getInitProposition().setValue(true);
-    	propNet.getInitProposition().propogate(true);
-		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
-		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
-		for (GdlSentence s : bases.keySet()) {
-			if (bases.get(s).getSingleInputarr().getValue())
-				nexts.add(s);
-		}
-		MachineState initial = new MachineState(nexts);
-		propNet.getInitProposition().setValue(false);
-		propNet.getInitProposition().propogate(false);
+		MachineState initial = getStateFromBase();
 		return initial;
     }
 
@@ -145,7 +130,6 @@ public class SimplePropNetStateMachine extends StateMachine {
     @Override
     public List<Move> getLegalMoves(MachineState state, Role role)
             throws MoveDefinitionException {
-    	//System.out.println("getLegalMoves: " + role.toString());
     	clearpropnet();
     	markbases(state.getContents());
     	Map<Role, Set<Proposition>> legalPropositions = propNet.getLegalPropositions();
@@ -165,6 +149,7 @@ public class SimplePropNetStateMachine extends StateMachine {
     @Override
     public MachineState getNextState(MachineState state, List<Move> moves)
             throws TransitionDefinitionException {
+    	clearpropnet();
     	markbases(state.getContents());
 		markactions(toDoes(moves));
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
@@ -220,7 +205,6 @@ public class SimplePropNetStateMachine extends StateMachine {
      * @param goalProposition
      * @return the integer value of the goal proposition
      */
-    @SuppressWarnings("unused")
 	private int getGoalValue(Proposition goalProposition) {
     	GdlRelation relation = (GdlRelation) goalProposition.getName();
         GdlConstant constant = (GdlConstant) relation.get(1);
@@ -236,8 +220,7 @@ public class SimplePropNetStateMachine extends StateMachine {
     public MachineState getStateFromBase() {
     	Set<GdlSentence> contents = new HashSet<GdlSentence>();
         for (Proposition p : propNet.getBasePropositions().values()) {
-            p.setValue(p.getSingleInputarr().propmark());
-            if (p.getValue()){
+            if (p.getSingleInputarr().propmark()){
                 contents.add(p.getName());
             }
         }
@@ -260,13 +243,9 @@ public class SimplePropNetStateMachine extends StateMachine {
     }
 
     private void clearpropnet(){
-    	Map<GdlSentence, Proposition> props = propNet.getBasePropositions();
-    	Iterator<Entry<GdlSentence, Proposition>> it = props.entrySet().iterator();
-    	while (it.hasNext()){
-    		Map.Entry<GdlSentence, Proposition> pair = (Map.Entry<GdlSentence, Proposition>)it.next();
-    		Proposition prop = pair.getValue();
+    	Set<Proposition> props = propNet.getPropositions();
+    	for(Proposition prop: props){
     		prop.setValue(false);
     	}
     }
-
 }

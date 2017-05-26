@@ -13,7 +13,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public class FrankieUniversalGamer extends FrankieGamer {
+public class FrankieExperimentationGamer extends FrankieGamer {
 
 	// Settings and helpers
 	private long buffer;
@@ -52,12 +52,11 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new MonteCarloTreeSearch(stateMachine, agent, timer);
+		searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
 
 		// Start computing the game tree during meta game
 		MachineState currentState = getCurrentState();
-		Node root = searchFn.getRoot(currentState);
-		searchFn.MCTS(root);
+		searchFn.MCTS(currentState);
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");

@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
-import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
 import org.ggp.base.util.statemachine.Role;
 import org.ggp.base.util.statemachine.StateMachine;
@@ -15,7 +14,7 @@ import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
-public class FrankieTestingGamer extends FrankieGamer {
+public class FrankieMultiThreadingGamer extends FrankieGamer {
 
 	// Settings and helpers
 	private long buffer;
@@ -42,7 +41,7 @@ public class FrankieTestingGamer extends FrankieGamer {
 		buffer = 4500;
 		long metagamebuffer = 6000;
 		nThreads = 2;
-		boolean useSpeedTestToDetermineThreads = true;
+		boolean useSpeedTestToDetermineThreads = false;
 		int speedTestDuration = 5000;
 
 		// Start Timer
@@ -57,7 +56,7 @@ public class FrankieTestingGamer extends FrankieGamer {
 		turn = 0;
 
 		if(useSpeedTestToDetermineThreads){
-			double chargesPerSec = performSpeedTest(speedTestDuration);
+			double chargesPerSec = stateMachine.performSpeedTest(speedTestDuration);
 			if(chargesPerSec > 100) nThreads = 1;
 			else nThreads = 2;
 		}
@@ -75,6 +74,9 @@ public class FrankieTestingGamer extends FrankieGamer {
 			else if (statemachinetype == "ProverStateMachine"){
 				sm = new CachedStateMachine(new ProverStateMachine());
 			}
+			else if (statemachinetype == "SimplePropNetStateMachine"){
+				sm = new CachedStateMachine(new SimplePropNetStateMachine());
+			}
 			else assert(false);
 
 			sm.initialize(getMatch().getGame().getRules());
@@ -82,20 +84,13 @@ public class FrankieTestingGamer extends FrankieGamer {
 		}
 
 		// Determine if game is single-player or multi-player and init MCTS
-		if(roles.size() > 1){
-			System.out.println("Multi-Player Game");
-			searchFn = new MultiThreadedMultiPlayerMonteCarloTreeSearch(stateMachine, agent, timer, machines);
-		}
-		else {
-			System.out.println("Single-Player Game");
-			searchFn = new SinglePlayerMonteCarloTreeSearch(stateMachine, agent, timer);
-		}
+		if(roles.size() > 1) System.out.println("Multi-Player Game");
+		else System.out.println("Single-Player Game");
+
+		searchFn = new MultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
-		MachineState currentState = getCurrentState();
-		assert(currentState != null);
-
-		Node root = searchFn.getRoot(currentState);
+		Node root = searchFn.getRoot(getCurrentState());
 		searchFn.MCTS(root);
 		searchFn.printTree(root, 1, 0);
 		System.out.println("Number of Initial Depth Charges: " + root.visits);
@@ -140,36 +135,5 @@ public class FrankieTestingGamer extends FrankieGamer {
 			System.out.println("TIMER IS EXPIRED");
 		}
 		return action;
-	}
-
-
-	@Override
-	public void stateMachineStop() {
-		// Cleanup when the match ends normally
-		try {
-			int reward = stateMachine.getGoal(getCurrentState(), agent);
-			System.out.println("Game over. Final Reward: " + reward);
-
-		} catch (GoalDefinitionException e) {
-			System.out.println("Goal Definition Exception: Failed to retrive final reward");
-		}
-	}
-
-
-	public double performSpeedTest(int duration) throws TransitionDefinitionException, MoveDefinitionException{
-		System.out.println("Performing speed test");
-		long start = System.currentTimeMillis();	// Start timer
-		long testTime = start + duration;
-		Timer speedTestTimer = new Timer();
-		speedTestTimer.initTimer(0, testTime);
-		int count = 0;
-		while(!speedTestTimer.isOutOfTime()) {
-			count ++;
-			stateMachine.performDepthChargeLite(getCurrentState());
-		}
-		double chargesPerSec = 1000 * count / ((double)duration);
-		System.out.println("Charges Per Second: " + chargesPerSec);
-
-		return chargesPerSec;
 	}
 }
