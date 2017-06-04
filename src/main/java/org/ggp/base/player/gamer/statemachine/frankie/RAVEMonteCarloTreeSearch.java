@@ -318,7 +318,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	private int getTotalN(Pair<MachineState, List<Move>> sa){
 		int N = 0;
 		for(int i = 0; i<nThreads; i++){
-			N += n_list.get(i).get(sa);
+			N += n_list.get(i).getOrDefault(sa, 1);
 		}
 		return N;
 	}
@@ -326,7 +326,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	private int getTotalN_bar(Pair<MachineState, List<Move>> sa){
 		int N_bar = 0;
 		for(int i = 0; i<nThreads; i++){
-			N_bar += n_bar_list.get(i).get(sa);
+			N_bar += n_bar_list.get(i).getOrDefault(sa, 1);
 		}
 		return N_bar;
 	}
@@ -334,7 +334,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	private double getAvgQ_bar(Pair<MachineState, List<Move>> sa){
 		Double Q_bar = 0.0;
 		for(int i = 0; i<nThreads; i++){
-			Q_bar += q_bar_list.get(i).get(sa);
+			Q_bar += q_bar_list.get(i).getOrDefault(sa, 50.0);
 		}
 		Q_bar = Q_bar/nThreads;
 		return Q_bar;
@@ -343,7 +343,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	private double getAvgQ(Pair<MachineState, List<Move>> sa){
 		Double Q = 0.0;
 		for(int i = 0; i<nThreads; i++){
-			Q += q_list.get(i).get(sa);
+			Q += q_list.get(i).getOrDefault(sa, 50.0);
 		}
 		Q = Q/nThreads;
 		return Q;

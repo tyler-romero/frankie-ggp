@@ -122,8 +122,6 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 
 		action = searchFn.getAction(moves, getCurrentState());
 
-		assert(action != null);
-
 		long stop = System.currentTimeMillis();		// Stop timer
 
 		// Don't touch
