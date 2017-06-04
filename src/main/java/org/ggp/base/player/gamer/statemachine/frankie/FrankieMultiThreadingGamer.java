@@ -40,7 +40,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 4;
+		nThreads = 8;
 		boolean useSpeedTestToDetermineThreads = false;
 		int speedTestDuration = 5000;
 

@@ -6,6 +6,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.ggp.base.util.Pair;
 import org.ggp.base.util.statemachine.MachineState;
@@ -248,6 +254,10 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	// Settings
 	static double b = 0.00001; // bias parameter
 
+	// Thread pooling
+	ExecutorService executor;
+	CompletionService<Integer> completionService;
+
 	multiThreadedRAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
 		super(sm, a, t);
 		System.out.println("multiThreadedRAVEMonteCarloTreeSearch");
@@ -276,6 +286,9 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 		for(int i = 0; i<nThreads; i++){
 			v_list.add(new HashMap<MachineState, Integer>());
 		}
+
+		executor = Executors.newFixedThreadPool(nThreads);
+		completionService = new ExecutorCompletionService<Integer>(executor);
 	}
 
 	@Override
@@ -290,29 +303,28 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	@Override
 	public void MCTS(MachineState root) {
 		System.out.println("Simulating...");
-		List<RAVEThread> threads = new ArrayList<RAVEThread>();
+
+		// Start depth charges
 		for(int i = 0; i<nThreads; i++){
 			RAVEThread raveThread = new RAVEThread(machines.get(i), agent, timer, root, C,
 					n_bar_list.get(i), n_list.get(i), q_bar_list.get(i), q_list.get(i), v_list.get(i));
-			raveThread.start();
-			threads.add(raveThread);
+			completionService.submit(raveThread);
 		}
 
-		for(int i = 0; i<nThreads; i++){
-			try {
-				threads.get(i).join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		System.out.println("...Joined");
-		/*
-		int visits = 0;
-		for(int i = 0; i<nThreads; i++){
-			visits += v_list.get(i).get(root);
-		}
-		System.out.println("Visits to root: " + visits);
-		*/
+		// Wait for threads to end and accumulate rewards
+		try {
+			int numDepthCharges = 0;
+            for (int i = 0;  i < nThreads; i++) {
+
+                Future<Integer> fRave = completionService.take();	//take is a blocking method
+                numDepthCharges += fRave.get();
+            }
+            System.out.println("Number of new simulations " + numDepthCharges);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
 	}
 
 	private int getTotalN(Pair<MachineState, List<Move>> sa){
@@ -358,7 +370,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 
 		double beta = N_bar/( N + N_bar + 4*N*N_bar*Math.pow(b, 2) );
 		double rave = (1-beta)*Q + beta*(Q_bar);
-		System.out.println("RAVE: " + rave);
+		System.out.println("RAVE: " + rave + "\tN: " + N);
 		return rave;
 	}
 

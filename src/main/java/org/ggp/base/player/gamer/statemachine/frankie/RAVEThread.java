@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
 
 import org.ggp.base.util.Pair;
 import org.ggp.base.util.statemachine.MachineState;
@@ -17,7 +18,7 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public class RAVEThread extends Thread {
+public class RAVEThread implements Callable<Integer> {
 	Timer timer;
 	MachineState root;
 	StateMachine stateMachine;
@@ -65,22 +66,27 @@ public class RAVEThread extends Thread {
 	}
 
 	@Override
-	public void run() {
+	public Integer call() {
 		try{
-
 			System.out.println("Thread started");
+			Integer numDepthCharges = 0;
 			while(!timer.isOutOfTime()) {
 				stateHistory.clear();
 				jointActionHistory.clear();
 				for(Role player: roles) playersActionHistory.get(player).clear();
 
 				simTree(root);
+				//if(timer.isOutOfTime()) break;
 				Double score = simDefault();
+				//if(timer.isOutOfTime()) break;
 				backup(score);
+				numDepthCharges++;
 			}
+			return numDepthCharges;
 		} catch(MoveDefinitionException | TransitionDefinitionException e) {
 			System.out.println("RAVEThread encountered an error");
 			e.printStackTrace();
+			return 0;
 		}
 	}
 
