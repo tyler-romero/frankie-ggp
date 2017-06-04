@@ -240,7 +240,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 
 
 // Uses root parallelism, so there is no synchronization
-class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
+class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	// Depending on the game could be faster or slower than single threaded version.
 	static int nThreads;
 	List<StateMachine> machines;
@@ -258,7 +258,7 @@ class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	ExecutorService executor;
 	CompletionService<Integer> completionService;
 
-	multiThreadedRAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
+	MultiThreadedRAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
 		super(sm, a, t);
 		System.out.println("multiThreadedRAVEMonteCarloTreeSearch");
 		machines = m;
