@@ -315,7 +315,6 @@ class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 		try {
 			int numDepthCharges = 0;
             for (int i = 0;  i < nThreads; i++) {
-
                 Future<Integer> fRave = completionService.take();	//take is a blocking method
                 numDepthCharges += fRave.get();
             }

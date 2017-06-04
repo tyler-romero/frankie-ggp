@@ -40,8 +40,6 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		buffer = 4500;
 		long metagamebuffer = 6000;
 		nThreads = 8;
-		boolean useSpeedTestToDetermineThreads = false;
-		int speedTestDuration = 5000;
 
 		// Start Timer
 		long finishBy = timeout - metagamebuffer;
@@ -54,15 +52,8 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		roles = stateMachine.getRoles();
 		turn = 0;
 
-		if(useSpeedTestToDetermineThreads){
-			double chargesPerSec = stateMachine.performSpeedTest(speedTestDuration);
-			if(chargesPerSec > 100) nThreads = 1;
-			else nThreads = 2;
-		}
-
 		// Initialize statemachines for other threads
-		System.out.println("nThreads: " + nThreads);
-		machines = new ArrayList<StateMachine>(nThreads);
+		machines = new ArrayList<StateMachine>();
 		for(int i = 0; i<nThreads; i++){
 			StateMachine sm = null;
 
@@ -80,13 +71,16 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 
 			sm.initialize(getMatch().getGame().getRules());
 			machines.add(sm);
+			if(timer.isOutOfTime()) break;
 		}
+		nThreads = machines.size();
+		System.out.println("nThreads: " + nThreads);
 
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new MultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
+		searchFn = new RootMultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());

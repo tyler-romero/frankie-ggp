@@ -3,6 +3,12 @@ package org.ggp.base.player.gamer.statemachine.frankie;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
@@ -22,6 +28,10 @@ public abstract class AbstractMonteCarloTreeSearch extends GenericSearch{
 		roles = stateMachine.getRoles();
 		// Settings
 		C = 1.0; // optimism parameter
+	}
+
+	public void MCTS(List<Node> roots) throws MoveDefinitionException, TransitionDefinitionException{
+		throw new Error();
 	}
 
 	@Override
@@ -98,14 +108,14 @@ class MonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 			score = 0;
 			for(Node child : root.children) {
 				double result = child.get_value();
-				if (result > score) {
+				if (result > score && child.visits > 1) {
 					score = result;
 					bestAction = child.action;
 				}
 			}
 		}
 
-		//printTree(root, 1, 0);
+		printTree(root, 1, 0);
 		System.out.println("Num depth charges: " + root.visits);
 		System.out.println("State/Action Value: " + score);
 		return bestAction;
@@ -232,13 +242,13 @@ class MonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 
 
 // --------------- Implementations --------------------
-class MultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
+class LeafMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
 	// Depending on the game could be faster or slower than single threaded version.
 	DepthChargeManager dmManager;
 
-	MultiThreadedMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> machines) {
+	LeafMultiThreadedMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> machines) {
 		super(sm, a, t);
-		System.out.println("MultiThreadedMultiPlayerMonteCarloTreeSearch");
+		System.out.println("LeafMultiThreadedMonteCarloTreeSearch");
 		dmManager = new DepthChargeManager(machines, agent);
 	}
 
@@ -271,16 +281,23 @@ class MultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch{
 }
 
 
-class BetterMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
+class TreeMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	// Depending on the game could be faster or slower than single threaded version.
 	static int nThreads;
 	List<StateMachine> machines;
 
-	BetterMultiThreadedMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
+	// Thread pooling
+	ExecutorService executor;
+	CompletionService<Integer> completionService;
+
+	TreeMultiThreadedMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
 		super(sm, a, t);
-		System.out.println("BetterMultiThreadedMultiPlayerMonteCarloTreeSearch");
+		System.out.println("TreeMultiThreadedMonteCarloTreeSearch");
 		machines = m;
 		nThreads = machines.size();
+
+		executor = Executors.newFixedThreadPool(nThreads);
+		completionService = new ExecutorCompletionService<Integer>(executor);
 	}
 
 	@Override
@@ -322,19 +339,162 @@ class BetterMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 
 	@Override
 	public void MCTS(Node root) {
-		List<MCTSThread> threads = new ArrayList<MCTSThread>();
 		for(int i = 0; i<nThreads; i++){
 			MCTSThread mctsThread = new MCTSThread(machines.get(i), agent, timer, root, C);
-			mctsThread.start();
-			threads.add(mctsThread);
+			completionService.submit(mctsThread);
 		}
 
-		for(int i = 0; i<nThreads; i++){
-			try {
-				threads.get(i).join();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+		try {
+			int numDepthCharges = 0;
+            for (int i = 0;  i < nThreads; i++) {
+                Future<Integer> fmcts = completionService.take();	//take is a blocking method
+                numDepthCharges += fmcts.get();
+            }
+            System.out.println("Number of new simulations " + numDepthCharges);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+	}
+}
+
+
+class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
+	// Depending on the game could be faster or slower than single threaded version.
+	static int nThreads;
+	List<StateMachine> machines;
+	List<Node> roots;
+
+	// Thread pooling
+	ExecutorService executor;
+	CompletionService<Integer> completionService;
+
+	RootMultiThreadedMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
+		super(sm, a, t);
+		System.out.println("RootMultiThreadedMonteCarloTreeSearch");
+		machines = m;
+		nThreads = machines.size();
+		roots = new ArrayList<Node>(nThreads);
+
+		executor = Executors.newFixedThreadPool(nThreads);
+		completionService = new ExecutorCompletionService<Integer>(executor);
+	}
+
+	Node getRoot(MachineState currentState, Node r) throws MoveDefinitionException {
+		if(r == null){
+			System.out.println("Creating new game tree root");
+			r = new Node(currentState, null, null);
+			return r;
+		}
+
+		if(metagaming)	return r;	// Return the root that was expanded during metagaming
+
+		for(Node child: r.children) {
+			if(child.state.equals(currentState)) {
+				r = child;
+				r.parent = null;
+				return r;
 			}
 		}
+		System.out.println("New root not found in children. Creating new game tree root.");
+		r = new Node(currentState, null, null);
+		return r;
+	}
+
+	private List<Node> getRoots(MachineState currentState) throws MoveDefinitionException{
+		for(int i=0; i<roots.size(); i++){
+			Node newr = getRoot(currentState, roots.get(i));
+			roots.set(i, newr);
+		}
+		return roots;
+	}
+
+	@Override
+	public Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException {
+		roots = getRoots(currentState);
+		if(metagaming) metagaming = false;
+
+		// Search the tree
+		MCTS(roots);	// Uses timer to terminate
+
+		List<Node> children = compileResults(roots);
+
+		// Select the best action from the children.
+		Move bestAction = moves.get(0);
+		double score;
+		if(root.isMin(stateMachine, agent)){	// Min case: Only one possible action. Find min action value.
+			score = 100.0;
+			for(Node child : children) {
+				double result = child.get_value();
+				if (result < score)
+					score = result;
+			}
+		} else {								// Max case: Find best action. Find max action value.
+			score = 0;
+			for(Node child : children) {
+				double result = child.get_value();
+				if (result > score) {
+					score = result;
+					bestAction = child.action;
+				}
+			}
+		}
+
+		System.out.println("State/Action Value: " + score);
+		return bestAction;
+	}
+
+	@Override
+	public void MCTS(List<Node> roots) {
+		for(int i = 0; i<nThreads; i++){
+			AsyncMCTSThread mctsThread = new AsyncMCTSThread(machines.get(i), agent, timer, roots.get(i), C);
+			completionService.submit(mctsThread);
+		}
+
+		try {
+			int numDepthCharges = 0;
+            for (int i = 0;  i < nThreads; i++) {
+                Future<Integer> fmcts = completionService.take();	//take is a blocking method
+                numDepthCharges += fmcts.get();
+            }
+            System.out.println("Number of new simulations " + numDepthCharges);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+	}
+
+	public List<Node> compileResults(List<Node> roots){
+		List<Node> children = new ArrayList<Node>();
+		for(int i = 0; i<roots.size(); i++){
+			if(i == 0){
+				for(Node c: roots.get(i).children){
+					Node newc = new Node(null, null, null);
+					newc.visits = c.visits;
+					newc.utility = c.utility;
+					newc.action = c.action;
+					children.add(newc);
+				}
+			}
+			else{
+				for(Node c: children){
+					c.visits += roots.get(i).visits;
+					c.utility += roots.get(i).utility;
+					assert(c.action.equals(roots.get(i).action));
+					if(!c.action.equals(roots.get(i).action)){
+						System.out.println("ACTION MISMATCH");
+					}
+				}
+			}
+		}
+		return children;
+	}
+
+	@Override
+	public void metaGame(MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException{
+		roots = getRoots(currentState);
+		MCTS(roots);
 	}
 }
