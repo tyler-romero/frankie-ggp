@@ -13,23 +13,18 @@ import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
 
-public abstract class AbstractMonteCarloTreeSearch {
-	StateMachine stateMachine;
-	Timer timer;
-	Role agent;
+public abstract class AbstractMonteCarloTreeSearch extends GenericSearch{
 	List<Role> roles;
-
 	static double C;
 
 	AbstractMonteCarloTreeSearch(StateMachine sm, Role a, Timer t){
-		stateMachine = sm;
-		agent = a;
-		timer = t;
+		super(sm, a, t);
 		roles = stateMachine.getRoles();
 		// Settings
 		C = 1.0; // optimism parameter
 	}
 
+	@Override
 	public abstract Move getAction(List<Move> moves, MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException;
 
 	public void MCTS(Node root) throws MoveDefinitionException, TransitionDefinitionException{
@@ -50,6 +45,12 @@ class MonteCarloTreeSearch extends AbstractMonteCarloTreeSearch{
 	MonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
 		System.out.println("MonteCarloTreeSearch");
+	}
+
+	@Override
+	public void metaGame(MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException{
+		Node root = getRoot(currentState);
+		MCTS(root);
 	}
 
 	Node getRoot(MachineState currentState) throws MoveDefinitionException {

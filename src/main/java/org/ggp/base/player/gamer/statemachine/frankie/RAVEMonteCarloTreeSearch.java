@@ -32,7 +32,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 
 	RAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
-		System.out.println("RAVE");
+		System.out.println("RAVEMonteCarloTreeSearch");
 		N_bar = new HashMap<Pair<MachineState, List<Move>>, Integer>();
 		N = new HashMap<Pair<MachineState, List<Move>>, Integer>();
 		Q_bar = new HashMap<Pair<MachineState, List<Move>>, Double>();
@@ -46,6 +46,11 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 		}
 	}
 
+	@Override
+	public void metaGame(MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException{
+		MCTS(currentState);
+	}
+
 
 	@Override
 	public Move getAction(List<Move> moves, MachineState root) throws MoveDefinitionException, TransitionDefinitionException {
@@ -53,7 +58,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 		MCTS(root);	// Uses timer to terminate
 
 		// Select the best action
-		return selectMove(root, false);
+		return selectMove(root);
 	}
 
 	@Override
@@ -121,11 +126,11 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 		}
 	}
 
-	List<Move> selectJointMove(MachineState state, boolean useOptimism) throws MoveDefinitionException{
+	List<Move> selectJointMove(MachineState state) throws MoveDefinitionException{
 		return selectMoveHelper(state, C, false).left;
 	}
 
-	Move selectMove(MachineState state, boolean useOptimism) throws MoveDefinitionException{
+	Move selectMove(MachineState state) throws MoveDefinitionException{
 		return selectMoveHelper(state, 0, true).right;
 	}
 
@@ -165,7 +170,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
                 return;
         	}
 
-        	List<Move> jointAction = selectJointMove(state, true);
+        	List<Move> jointAction = selectJointMove(state);
         	stateHistory.add(state);
     		jointActionHistory.add(jointAction);
             state = stateMachine.getNextState(state, jointAction);
@@ -225,5 +230,185 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 			}
 		}
 	}
+}
 
+
+// Uses root parallelism, so there is no synchronization
+class multiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
+	// Depending on the game could be faster or slower than single threaded version.
+	static int nThreads;
+	List<StateMachine> machines;
+
+	List<Map<Pair<MachineState, List<Move>>, Integer>> n_bar_list;
+	List<Map<Pair<MachineState, List<Move>>, Integer>> n_list;
+	List<Map<Pair<MachineState, List<Move>>, Double>> q_bar_list;
+	List<Map<Pair<MachineState, List<Move>>, Double>> q_list;
+	List<Map<MachineState, Integer>> v_list;
+
+	// Settings
+	static double b = 0.00001; // bias parameter
+
+	multiThreadedRAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
+		super(sm, a, t);
+		System.out.println("multiThreadedRAVEMonteCarloTreeSearch");
+		machines = m;
+		nThreads = machines.size();
+
+		n_bar_list = new ArrayList<Map<Pair<MachineState, List<Move>>, Integer>>(nThreads);
+		n_list = new ArrayList<Map<Pair<MachineState, List<Move>>, Integer>>(nThreads);
+		q_bar_list = new ArrayList<Map<Pair<MachineState, List<Move>>, Double>>(nThreads);
+		q_list = new ArrayList<Map<Pair<MachineState, List<Move>>, Double>>(nThreads);
+		v_list = new ArrayList<Map<MachineState, Integer>>(nThreads);
+
+		// Init all of the lists
+		for(int i = 0; i<nThreads; i++){
+			n_bar_list.add(new HashMap<Pair<MachineState, List<Move>>, Integer>());
+		}
+		for(int i = 0; i<nThreads; i++){
+			n_list.add(new HashMap<Pair<MachineState, List<Move>>, Integer>());
+		}
+		for(int i = 0; i<nThreads; i++){
+			q_bar_list.add(new HashMap<Pair<MachineState, List<Move>>, Double>());
+		}
+		for(int i = 0; i<nThreads; i++){
+			q_list.add(new HashMap<Pair<MachineState, List<Move>>, Double>());
+		}
+		for(int i = 0; i<nThreads; i++){
+			v_list.add(new HashMap<MachineState, Integer>());
+		}
+	}
+
+	@Override
+	public Move getAction(List<Move> moves, MachineState root) throws MoveDefinitionException, TransitionDefinitionException {
+		// Search the tree
+		MCTS(root);	// Uses timer to terminate
+
+		// Select the best action
+		return selectMove(root);
+	}
+
+	@Override
+	public void MCTS(MachineState root) {
+		System.out.println("Simulating...");
+		List<RAVEThread> threads = new ArrayList<RAVEThread>();
+		for(int i = 0; i<nThreads; i++){
+			RAVEThread raveThread = new RAVEThread(machines.get(i), agent, timer, root, C,
+					n_bar_list.get(i), n_list.get(i), q_bar_list.get(i), q_list.get(i), v_list.get(i));
+			raveThread.start();
+			threads.add(raveThread);
+		}
+
+		for(int i = 0; i<nThreads; i++){
+			try {
+				threads.get(i).join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		System.out.println("...Joined");
+		/*
+		int visits = 0;
+		for(int i = 0; i<nThreads; i++){
+			visits += v_list.get(i).get(root);
+		}
+		System.out.println("Visits to root: " + visits);
+		*/
+	}
+
+	private int getTotalN(Pair<MachineState, List<Move>> sa){
+		int N = 0;
+		for(int i = 0; i<nThreads; i++){
+			N += n_list.get(i).get(sa);
+		}
+		return N;
+	}
+
+	private int getTotalN_bar(Pair<MachineState, List<Move>> sa){
+		int N_bar = 0;
+		for(int i = 0; i<nThreads; i++){
+			N_bar += n_bar_list.get(i).get(sa);
+		}
+		return N_bar;
+	}
+
+	private double getAvgQ_bar(Pair<MachineState, List<Move>> sa){
+		Double Q_bar = 0.0;
+		for(int i = 0; i<nThreads; i++){
+			Q_bar += q_bar_list.get(i).get(sa);
+		}
+		Q_bar = Q_bar/nThreads;
+		return Q_bar;
+	}
+
+	private double getAvgQ(Pair<MachineState, List<Move>> sa){
+		Double Q = 0.0;
+		for(int i = 0; i<nThreads; i++){
+			Q += q_list.get(i).get(sa);
+		}
+		Q = Q/nThreads;
+		return Q;
+	}
+
+	double evalfn(MachineState state, List<Move> jointAction, double c) throws MoveDefinitionException{
+		Pair<MachineState, List<Move>> sa = Pair.of(state, jointAction);
+		Integer N_bar = getTotalN_bar(sa);
+		Integer N = getTotalN(sa);
+		Double Q_bar = getAvgQ_bar(sa);
+		Double Q = getAvgQ(sa);
+
+		double beta = N_bar/( N + N_bar + 4*N*N_bar*Math.pow(b, 2) );
+		double rave = (1-beta)*Q + beta*(Q_bar);
+		System.out.println("RAVE: " + rave);
+		return rave;
+	}
+
+	Pair<List<Move>, Move> selectMoveHelper(MachineState state, double c, boolean verbose) throws MoveDefinitionException{
+		List<Move> actions = stateMachine.findLegals(agent, state);
+		List<Move> bestJointAction = null;
+		Move bestAction = null;
+		if(!isMin(state)){	// Argmax
+			double bestval = 0;
+			for(Move action: actions){
+				List<List<Move>> jointMoves = stateMachine.getLegalJointMoves(state, agent, action);
+				for(List<Move> jointAction : jointMoves) {
+					double val = evalfn(state, jointAction, c);
+					if(val > bestval){
+						bestval = val;
+						bestAction = action;
+						bestJointAction = jointAction;
+					}
+				}
+			}
+			if(verbose) System.out.println("Best action value: " + bestval);
+			return Pair.of(bestJointAction, bestAction);
+		}
+		else{				// Argmin
+			double bestval = 100;
+			for(Move action: actions){
+				List<List<Move>> jointMoves = stateMachine.getLegalJointMoves(state, agent, action);
+				for(List<Move> jointAction : jointMoves) {
+					double val = evalfn(state, jointAction, -1*c);
+					if(val < bestval){
+						bestval = val;
+						bestAction = action;
+						bestJointAction = jointAction;
+					}
+				}
+			}
+			return Pair.of(bestJointAction, bestAction);
+		}
+	}
+
+	Move selectMove(MachineState state) throws MoveDefinitionException{
+		return selectMoveHelper(state, 0, true).right;
+	}
+
+	boolean isMin(MachineState state) throws MoveDefinitionException {
+		return (stateMachine.findLegals(agent, state).size() == 1);
+	}
+
+	@Override
+	public void metaGame(MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException{
+		MCTS(currentState);
+	}
 }

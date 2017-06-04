@@ -40,7 +40,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 2;
+		nThreads = 8;
 		boolean useSpeedTestToDetermineThreads = false;
 		int speedTestDuration = 5000;
 
@@ -87,13 +87,10 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new MultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
+		searchFn = new multiThreadedRAVEMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
-		Node root = searchFn.getRoot(getCurrentState());
-		searchFn.MCTS(root);
-		searchFn.printTree(root, 1, 0);
-		System.out.println("Number of Initial Depth Charges: " + root.visits);
+		searchFn.metaGame(getCurrentState());
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
@@ -124,6 +121,8 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		Move action = moves.get(0);
 
 		action = searchFn.getAction(moves, getCurrentState());
+
+		assert(action != null);
 
 		long stop = System.currentTimeMillis();		// Stop timer
 

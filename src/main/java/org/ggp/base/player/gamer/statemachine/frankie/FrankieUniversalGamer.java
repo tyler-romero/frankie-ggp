@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
-import org.ggp.base.util.statemachine.MachineState;
 import org.ggp.base.util.statemachine.Move;
 import org.ggp.base.util.statemachine.Role;
 import org.ggp.base.util.statemachine.StateMachine;
@@ -23,7 +22,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	private List<Role> roles;
 	private StateMachine stateMachine;
 	private Timer timer;
-	private MonteCarloTreeSearch searchFn;
+	private GenericSearch searchFn;
 
 	private int turn;
 
@@ -32,7 +31,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
 		// Configure Settings
-		buffer = 4500;
+		//buffer = 4500;
+		buffer = 2000;
 		long metagamebuffer = 6000;
 
 		// Start timer
@@ -46,18 +46,16 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		stateMachine = getStateMachine();
 		agent = getRole();
 		roles = stateMachine.getRoles();
-		turn = 0;	// Print the agent's name
+		turn = 0;
 
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new MonteCarloTreeSearch(stateMachine, agent, timer);
+		searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
 
 		// Start computing the game tree during meta game
-		MachineState currentState = getCurrentState();
-		Node root = searchFn.getRoot(currentState);
-		searchFn.MCTS(root);
+		searchFn.metaGame(getCurrentState());
 
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");

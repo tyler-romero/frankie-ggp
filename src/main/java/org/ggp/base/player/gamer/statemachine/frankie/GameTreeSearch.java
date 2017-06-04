@@ -11,21 +11,46 @@ import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
 
-public abstract class GameTreeSearch {
-	StateMachine stateMachine;
+public abstract class GameTreeSearch extends GenericSearch{
 	int search_depth;
-	Timer timer;
-	Role agent;
+	private int deepening_rate;
+	private int deepening_counter;
+
 
 	GameTreeSearch(StateMachine sm, Role a, Timer t){
-		stateMachine = sm;
-		agent = a;
-		timer = t;
+		super(sm, a, t);
+		deepening_rate = 2;	// Number of turns in between updating depth
+		deepening_counter = 0;
 	}
 
 	public void setSearchDepth(int depth) {search_depth = depth;}
 
+	@Override
 	public abstract Move getAction(List<Move> moves, MachineState currentState) throws TransitionDefinitionException, GoalDefinitionException, MoveDefinitionException;
+
+	protected void iterativeDeepening(List<Move> moves){
+		if(moves.size() != 1){	// Only increase depth if it was our turn
+			if(!timer.did_timeout){
+				if(deepening_rate == deepening_counter) {	// Only increase depth every so often
+					search_depth += 1;
+					setSearchDepth(search_depth);
+					System.out.println("Set search depth to: " + search_depth);
+					deepening_counter = 0;
+				}
+				deepening_counter++;
+			}
+			else {	//There was a timeout
+				search_depth = java.lang.Math.max(search_depth-1, 0);
+				setSearchDepth(search_depth);
+				System.out.println("Out of time! Set search depth to: " + search_depth);
+			}
+		}
+	}
+
+	@Override
+	public void metaGame(MachineState currentState) throws MoveDefinitionException, TransitionDefinitionException{
+		return;
+	}
 }
 
 //------------ AlphaBeta ---------------
@@ -68,6 +93,8 @@ class AlphaBeta extends GameTreeSearch{
 				break;
 			}
 		}
+
+		iterativeDeepening(moves);
 
 		System.out.println("Action Score: " + score);
 		return action;
@@ -167,6 +194,9 @@ class CompulsiveDeliberation extends GameTreeSearch{
 				break;
 			}
 		}
+
+		// Iterative Deepening
+		iterativeDeepening(moves);
 
 		System.out.println("Action Score: " + score);
 		return action;

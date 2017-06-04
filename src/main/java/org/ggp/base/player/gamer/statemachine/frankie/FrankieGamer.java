@@ -15,6 +15,8 @@ import org.ggp.base.util.statemachine.verifier.StateMachineVerifier;
 
 public abstract class FrankieGamer extends StateMachineGamer {
 	String statemachinetype = "";
+	Double smSpeed = 0.0;
+
 
 	@Override
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
@@ -32,10 +34,10 @@ public abstract class FrankieGamer extends StateMachineGamer {
 	public StateMachine getInitialStateMachine() {
 		StateMachine prover = new CachedStateMachine(new ProverStateMachine());
 		prover.initialize(getMatch().getGame().getRules());
-		StateMachine propnet = new CachedStateMachine(new SimplePropNetStateMachine());
-		propnet.initialize(getMatch().getGame().getRules());
-		StateMachine simplepropnet = new CachedStateMachine(new PropNetStateMachine());
+		StateMachine simplepropnet = new CachedStateMachine(new SimplePropNetStateMachine());
 		simplepropnet.initialize(getMatch().getGame().getRules());
+		StateMachine propnet = new CachedStateMachine(new PropNetStateMachine());
+		propnet.initialize(getMatch().getGame().getRules());
 
 		boolean isPropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, propnet, 2500);
 		boolean isSimplePropNetConsistant = StateMachineVerifier.checkMachineConsistency(prover, simplepropnet, 2500);
@@ -49,23 +51,31 @@ public abstract class FrankieGamer extends StateMachineGamer {
 			if(propnetSpeed > simplePropnetSpeed) {
 				System.out.println("Using PropNetStateMachine");
 				statemachinetype = "PropNetStateMachine";
+				smSpeed = propnetSpeed;
 				return propnet;
 			} else{
 				System.out.println("Using SimplePropNetStateMachine");
 				statemachinetype = "SimplePropNetStateMachine";
+				smSpeed = simplePropnetSpeed;
 				return simplepropnet;
 			}
 		} else if (isPropNetConsistant) {
 			System.out.println("SimplePropNetStateMachine is not consistant");
 			System.out.println("Using PropNetStateMachine");
+			System.out.println("PropNet Speed Test:");
+			smSpeed = propnet.performSpeedTest(2500);
 			statemachinetype = "PropNetStateMachine";
 			return propnet;
 		} else if (isSimplePropNetConsistant) {
-			 System.out.println("Using SimplePropNetStateMachine");
+			System.out.println("Using SimplePropNetStateMachine");
+			System.out.println("SimplePropNet Speed Test:");
+			smSpeed = simplepropnet.performSpeedTest(2500);
 			statemachinetype = "SimplePropNetStateMachine";
 			return simplepropnet;
 		} else {
 			System.out.println("Using ProverStateMachine");
+			System.out.println("ProverStateMachine Speed Test:");
+			smSpeed = prover.performSpeedTest(2500);
 			statemachinetype = "ProverStateMachine";
 			return prover;
 		}

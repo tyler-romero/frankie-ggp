@@ -110,10 +110,10 @@ public class OptimizingPropNetFactory {
 	 * PropNet creation.
 	 */
 	public static PropNet create(List<Gdl> description) throws InterruptedException {
-		return create(description, false);
+		return create(description, false, true);
 	}
 
-	public static PropNet create(List<Gdl> description, boolean verbose) throws InterruptedException {
+	public static PropNet create(List<Gdl> description, boolean verbose, boolean printSize) throws InterruptedException {
 		//System.out.println("Building propnet...");
 
 		long startTime = System.currentTimeMillis();
@@ -240,14 +240,26 @@ public class OptimizingPropNetFactory {
 		//Make it look the same as the PropNetFactory results, until we decide
 		//how we want it to look
 
-		//normalizePropositions(componentSet);
+		normalizePropositions(componentSet);
+
 		PropNet propnet = new PropNet(roles, componentSet);
-		if(verbose) {
+		removeAnonymousPropositions(propnet);
+		removeInits(propnet);
+
+		if(printSize) {
 			System.out.println("Done setting up propnet; took " + (System.currentTimeMillis() - startTime) + "ms, has " + componentSet.size() + " components and " + propnet.getNumLinks() + " links");
 			System.out.println("Propnet has " +propnet.getNumAnds()+" ands; "+propnet.getNumOrs()+" ors; "+propnet.getNumNots()+" nots");
 		}
+
 		//System.out.println("...done");
 		return propnet;
+	}
+
+	private static Set<Proposition> getBasesTrueByInit(PropNet propnet){
+		Set<Proposition> basesTrueByInit = new HashSet<Proposition>();
+
+
+		return basesTrueByInit;
 	}
 
 

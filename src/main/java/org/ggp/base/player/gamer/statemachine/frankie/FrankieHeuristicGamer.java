@@ -42,9 +42,7 @@ public class FrankieHeuristicGamer extends FrankieGamer {
 		timer = new Timer();
 
 		// Configure Settings
-		buffer = 3000;
-		deepening_rate = 2;	// Number of turns in between updating depth
-		deepening_counter = 0;
+		buffer = 4000;
 
 		// Determine if game is single-player or multi-player and init heuristics
 		if(roles.size() > 1){
@@ -58,9 +56,8 @@ public class FrankieHeuristicGamer extends FrankieGamer {
 			search_depth = 6;
 		}
 
-		// Set up heuristics and evaluation function. Keep order the same.
 		List<FrankieHeuristic> heuristics = new ArrayList<FrankieHeuristic>();
-		heuristics.add( new MonteCarloHeuristic(0.6, 4) );
+		//heuristics.add( new MonteCarloHeuristic(0.6, 4) );
 		heuristics.add( new AgentMobilityHeuristic(0.2) );
 		heuristics.add( new AgentFocusHeuristic(0) );
 		if(!isSinglePlayer) {
@@ -104,40 +101,10 @@ public class FrankieHeuristicGamer extends FrankieGamer {
 
 		action = searchFn.getAction(moves, getCurrentState());
 
-		// Iterative Deepening
-		if(moves.size() != 1){	// Only increase depth if it was our turn
-			if(!timer.did_timeout){
-				if(deepening_rate == deepening_counter) {	// Only increase depth every so often
-					search_depth += 1;
-					searchFn.setSearchDepth(search_depth);
-					System.out.println("Set search depth to: " + search_depth);
-					deepening_counter = 0;
-				}
-				deepening_counter++;
-			}
-			else {	//There was a timeout
-				search_depth = java.lang.Math.max(search_depth-1, 0);
-				searchFn.setSearchDepth(search_depth);
-				System.out.println("Out of time! Set search depth to: " + search_depth);
-			}
-		}
-
 		long stop = System.currentTimeMillis();		// Stop timer
 
 		// Don't touch
 		notifyObservers(new GamerSelectedMoveEvent(moves, action, stop - start));
 		return action;
-	}
-
-	@Override
-	public void stateMachineStop() {
-		// Cleanup when the match ends normally
-		try {
-			int reward = stateMachine.getGoal(getCurrentState(), agent);
-			System.out.println("Final Reward: " + reward);
-
-		} catch (GoalDefinitionException e) {
-			System.out.println("Goal Definition Exception: Failed to retrive final reward");
-		}
 	}
 }
