@@ -25,7 +25,6 @@ public class FrankieExperimentationGamer extends FrankieGamer {
 	private GenericSearch searchFn;
 
 	private int turn;
-	boolean isSinglePlayer;
 
 	// ----- Initialization and Pre-Computation ----- //
 	@Override
@@ -52,32 +51,12 @@ public class FrankieExperimentationGamer extends FrankieGamer {
 		// Determine if game is single-player or multi-player and init MCTS
 		if(roles.size() > 1){
 			System.out.println("Multi-Player Game");
-			isSinglePlayer = false;
 		} else {
 			System.out.println("Single-Player Game");
-			isSinglePlayer = true;
 		}
 
-		if(smSpeed < 5.0){	// If there are tons of moves and we are super slow
-			System.out.println("VERY SLOW GAME");
-			List<FrankieHeuristic> heuristics = new ArrayList<FrankieHeuristic>();
-			heuristics.add( new AgentMobilityHeuristic(0.0) );
-			heuristics.add( new AgentFocusHeuristic(0.2) );
-			if(!isSinglePlayer) {
-				//heuristics.add( new OppMobilityHeuristic(0.0) );
-				heuristics.add( new OppFocusHeuristic(0.8) );
-			}
-			FrankieEvaluationFunction evalFn = new FrankieEvaluationFunction(stateMachine, heuristics);
+		searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
 
-			if(roles.size() > 1){
-				searchFn = new AlphaBeta(stateMachine, agent, timer, evalFn);
-			} else {
-				searchFn = new CompulsiveDeliberation(stateMachine, agent, timer, evalFn);
-			}
-
-		} else{
-			searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
-		}
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());

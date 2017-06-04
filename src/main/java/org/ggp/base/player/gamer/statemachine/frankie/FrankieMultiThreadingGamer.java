@@ -86,7 +86,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new MultiThreadedRAVEMonteCarloTreeSearch(stateMachine, agent, timer, machines);
+		searchFn = new MultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());
