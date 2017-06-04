@@ -403,10 +403,19 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	}
 
 	private List<Node> getRoots(MachineState currentState) throws MoveDefinitionException{
-		for(int i=0; i<roots.size(); i++){
-			Node newr = getRoot(currentState, roots.get(i));
-			roots.set(i, newr);
+		if(roots.size() == 0){
+			for(int i=0; i<nThreads; i++){
+				Node newr = getRoot(currentState, null);
+				roots.add(newr);
+			}
 		}
+		else{
+			for(int i=0; i<roots.size(); i++){
+				Node newr = getRoot(currentState, roots.get(i));
+				roots.set(i, newr);
+			}
+		}
+
 		return roots;
 	}
 
