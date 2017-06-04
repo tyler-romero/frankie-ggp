@@ -8,7 +8,6 @@ import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
 import org.ggp.base.util.statemachine.Move;
 import org.ggp.base.util.statemachine.Role;
 import org.ggp.base.util.statemachine.StateMachine;
-import org.ggp.base.util.statemachine.cache.CachedStateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
@@ -69,13 +68,13 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 
 			System.out.println("Creating instance of "+ statemachinetype);
 			if(statemachinetype == "PropNetStateMachine"){
-				sm = new CachedStateMachine(new PropNetStateMachine());
+				sm = new PropNetStateMachine();
 			}
 			else if (statemachinetype == "ProverStateMachine"){
-				sm = new CachedStateMachine(new ProverStateMachine());
+				sm = new ProverStateMachine();
 			}
 			else if (statemachinetype == "SimplePropNetStateMachine"){
-				sm = new CachedStateMachine(new SimplePropNetStateMachine());
+				sm = new SimplePropNetStateMachine();
 			}
 			else assert(false);
 
