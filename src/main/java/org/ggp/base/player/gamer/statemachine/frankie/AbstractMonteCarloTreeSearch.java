@@ -434,7 +434,7 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 		// Select the best action from the children.
 		Move bestAction = moves.get(0);
 		double score;
-		if(root.isMin(stateMachine, agent)){	// Min case: Only one possible action. Find min action value.
+		if(roots.get(0).isMin(stateMachine, agent)){	// Min case: Only one possible action. Find min action value.
 			score = 100.0;
 			for(Node child : children) {
 				double result = child.get_value();
@@ -495,8 +495,9 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 					Node newc = children.get(c.state);
 					newc.visits += c.visits;
 					newc.utility += c.utility;
+					children.put(c.state, newc);
 
-					if(!c.action.equals(roots.get(i).action)){
+					if(!newc.action.equals(c.action)){
 						System.out.println("ACTION MISMATCH");
 					}
 				}
