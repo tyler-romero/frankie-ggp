@@ -1,7 +1,9 @@
 package org.ggp.base.player.gamer.statemachine.frankie;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -476,7 +478,7 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	}
 
 	public List<Node> compileResults(List<Node> roots){
-		List<Node> children = new ArrayList<Node>();
+		Map<MachineState, Node> children = new HashMap<MachineState, Node>();
 		for(int i = 0; i<roots.size(); i++){
 			if(i == 0){
 				for(Node c: roots.get(i).children){
@@ -484,21 +486,23 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 					newc.visits = c.visits;
 					newc.utility = c.utility;
 					newc.action = c.action;
-					children.add(newc);
+					newc.state = c.state;
+					children.put(newc.state, newc);
 				}
 			}
 			else{
-				for(Node c: children){
-					c.visits += roots.get(i).visits;
-					c.utility += roots.get(i).utility;
-					assert(c.action.equals(roots.get(i).action));
+				for(Node c: roots.get(i).children){
+					Node newc = children.get(c.state);
+					newc.visits += c.visits;
+					newc.utility += c.utility;
+
 					if(!c.action.equals(roots.get(i).action)){
 						System.out.println("ACTION MISMATCH");
 					}
 				}
 			}
 		}
-		return children;
+		return new ArrayList<Node>(children.values());
 	}
 
 	@Override
