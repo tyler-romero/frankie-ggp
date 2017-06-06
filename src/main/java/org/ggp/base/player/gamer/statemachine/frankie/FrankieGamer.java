@@ -44,9 +44,9 @@ public abstract class FrankieGamer extends StateMachineGamer {
 
 		if(isPropNetConsistant && isSimplePropNetConsistant){
 			System.out.println("PropNet Speed Test:");
-			double propnetSpeed = propnet.performSpeedTest(2500);
+			double propnetSpeed = propnet.performSpeedTest(1000);
 			System.out.println("SimplePropNet Speed Test:");
-			double simplePropnetSpeed = simplepropnet.performSpeedTest(2500);
+			double simplePropnetSpeed = simplepropnet.performSpeedTest(1000);
 
 			if(propnetSpeed > simplePropnetSpeed) {
 				System.out.println("Using PropNetStateMachine");
