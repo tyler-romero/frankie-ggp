@@ -31,8 +31,7 @@ public class FrankieExperimentationGamer extends FrankieGamer {
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
 		// Configure Settings
-		//buffer = 4500;
-		buffer = 2000;
+		buffer = 4500;
 		long metagamebuffer = 6000;
 
 		// Start timer

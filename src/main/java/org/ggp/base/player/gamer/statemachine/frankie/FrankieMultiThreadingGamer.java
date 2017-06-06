@@ -39,7 +39,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 8;
+		nThreads = 2;
 
 		// Start Timer
 		long finishBy = timeout - metagamebuffer;
@@ -81,6 +81,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		else System.out.println("Single-Player Game");
 
 		searchFn = new RootMultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
+		//searchFn = new MultiThreadedRAVEMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());

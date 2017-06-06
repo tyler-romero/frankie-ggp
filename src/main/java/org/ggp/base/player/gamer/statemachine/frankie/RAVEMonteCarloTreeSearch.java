@@ -50,6 +50,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 		for(Role player: roles){
 			playersActionHistory.put(player, new ArrayList<List<Move>>());
 		}
+		C = 40;
 	}
 
 	@Override
@@ -112,7 +113,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 					}
 				}
 			}
-			if(verbose) System.out.println("Best action value: " + bestval);
+			if(verbose) System.out.println("RAVE Best action value: " + bestval);
 			return Pair.of(bestJointAction, bestAction);
 		}
 		else{				// Argmin
@@ -260,7 +261,7 @@ class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 
 	MultiThreadedRAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t, List<StateMachine> m) {
 		super(sm, a, t);
-		System.out.println("multiThreadedRAVEMonteCarloTreeSearch");
+		System.out.println("MultiThreadedRAVEMonteCarloTreeSearch");
 		machines = m;
 		nThreads = machines.size();
 
@@ -289,6 +290,8 @@ class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 
 		executor = Executors.newFixedThreadPool(nThreads);
 		completionService = new ExecutorCompletionService<Integer>(executor);
+
+		C = 40;
 	}
 
 	@Override
@@ -343,20 +346,26 @@ class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 	}
 
 	private double getAvgQ_bar(Pair<MachineState, List<Move>> sa){
+		// Uses a weighted average
 		Double Q_bar = 0.0;
+		int N_bar = 0;
 		for(int i = 0; i<nThreads; i++){
-			Q_bar += q_bar_list.get(i).getOrDefault(sa, 50.0);
+			Q_bar += q_bar_list.get(i).getOrDefault(sa, 50.0) * n_bar_list.get(i).getOrDefault(sa, 1);
+			N_bar += n_bar_list.get(i).getOrDefault(sa, 1);
 		}
-		Q_bar = Q_bar/nThreads;
+		Q_bar = Q_bar/N_bar;
 		return Q_bar;
 	}
 
 	private double getAvgQ(Pair<MachineState, List<Move>> sa){
+		// Uses a weighted average
 		Double Q = 0.0;
+		int N = 0;
 		for(int i = 0; i<nThreads; i++){
-			Q += q_list.get(i).getOrDefault(sa, 50.0);
+			Q += q_list.get(i).getOrDefault(sa, 50.0) * n_list.get(i).getOrDefault(sa, 1);
+			N += n_list.get(i).getOrDefault(sa, 1);
 		}
-		Q = Q/nThreads;
+		Q = Q/N;
 		return Q;
 	}
 
@@ -390,7 +399,7 @@ class MultiThreadedRAVEMonteCarloTreeSearch extends MonteCarloTreeSearch {
 					}
 				}
 			}
-			if(verbose) System.out.println("Best action value: " + bestval);
+			if(verbose) System.out.println("MTRAVE Best action value: " + bestval);
 			return Pair.of(bestJointAction, bestAction);
 		}
 		else{				// Argmin

@@ -31,8 +31,7 @@ public class FrankieUniversalGamer extends FrankieGamer {
 	public void stateMachineMetaGame(long timeout) throws TransitionDefinitionException, MoveDefinitionException, GoalDefinitionException
 	{
 		// Configure Settings
-		//buffer = 4500;
-		buffer = 2000;
+		buffer = 4500;
 		long metagamebuffer = 6000;
 
 		// Start timer
@@ -52,7 +51,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		if(roles.size() > 1) System.out.println("Multi-Player Game");
 		else System.out.println("Single-Player Game");
 
-		searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
+		//searchFn = new RAVEMonteCarloTreeSearch(stateMachine, agent, timer);
+		searchFn = new MonteCarloTreeSearch(stateMachine, agent, timer);
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());

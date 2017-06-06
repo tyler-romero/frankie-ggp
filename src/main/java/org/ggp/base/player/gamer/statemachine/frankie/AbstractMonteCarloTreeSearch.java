@@ -29,7 +29,7 @@ public abstract class AbstractMonteCarloTreeSearch extends GenericSearch{
 		super(sm, a, t);
 		roles = stateMachine.getRoles();
 		// Settings
-		C = 1.0; // optimism parameter
+		C = 40.0; // optimism parameter
 	}
 
 	public void MCTS(List<Node> roots) throws MoveDefinitionException, TransitionDefinitionException{
@@ -417,7 +417,6 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 				roots.set(i, newr);
 			}
 		}
-
 		return roots;
 	}
 
@@ -496,10 +495,6 @@ class RootMultiThreadedMonteCarloTreeSearch extends MonteCarloTreeSearch {
 					newc.visits += c.visits;
 					newc.utility += c.utility;
 					children.put(c.state, newc);
-
-					if(!newc.action.equals(c.action)){
-						System.out.println("ACTION MISMATCH");
-					}
 				}
 			}
 		}

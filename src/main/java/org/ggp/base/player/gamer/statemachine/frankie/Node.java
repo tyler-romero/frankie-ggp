@@ -18,8 +18,8 @@ public class Node {
 	public Move action;
 
 	public Node(MachineState s, Node p, Move a){
-		visits = 5;	// Heuristic Init
-		utility = visits*50.0;	// Heuristic Init
+		visits = 0;
+		utility = 0.0;
 		parent = p;	// The parent of the current node
 		state = s;	// The state the current note represents
 		children = new ArrayList<Node>();
