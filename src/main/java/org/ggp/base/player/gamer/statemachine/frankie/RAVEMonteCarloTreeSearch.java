@@ -34,7 +34,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 	Map<Role, List<List<Move>>> playersActionHistory;
 
 	// Settings
-	static double b = 0.00001; // bias parameter
+	static double b = 0.001; // bias parameter
 
 	RAVEMonteCarloTreeSearch(StateMachine sm, Role a, Timer t) {
 		super(sm, a, t);
@@ -50,7 +50,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 		for(Role player: roles){
 			playersActionHistory.put(player, new ArrayList<List<Move>>());
 		}
-		C = 40;
+		C = 1;
 	}
 
 	@Override
@@ -113,7 +113,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 					}
 				}
 			}
-			if(verbose) System.out.println("RAVE Best action value: " + bestval);
+			if(verbose) System.out.println("RAVE Best max action value: " + bestval);
 			return Pair.of(bestJointAction, bestAction);
 		}
 		else{				// Argmin
@@ -129,6 +129,7 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 					}
 				}
 			}
+			if(verbose) System.out.println("RAVE Best min action value: " + bestval);
 			return Pair.of(bestJointAction, bestAction);
 		}
 	}
@@ -157,8 +158,8 @@ public class RAVEMonteCarloTreeSearch extends AbstractMonteCarloTreeSearch {
 			for(List<Move> jointAction : jointMoves) {
 				Pair<MachineState, List<Move>> sa = Pair.of(state, jointAction);
 				//Implement heuristic init here. Currently uses even game heuristic
-				N_bar.put(sa, 50);
-				N.put(sa, 50);
+				N_bar.put(sa, 1);
+				N.put(sa, 1);
 				Q_bar.put(sa, 50.0);
 				Q.put(sa, 50.0);
 			}

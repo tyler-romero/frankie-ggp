@@ -1,5 +1,7 @@
 package org.ggp.base.player.gamer.statemachine.frankie;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -227,6 +229,8 @@ class AsyncMCTSThread implements Callable<Integer> {
 
 		// Create child nodes from all joint legal moves. NOTE: could be expensive
 		List<Move> actions = stateMachine.findLegals(agent, node.state);
+		actions = new ArrayList<Move>(actions);
+		Collections.shuffle(actions);
 
 		for(Move action: actions) {
 			List<List<Move>> joint_move_list = stateMachine.getLegalJointMoves(node.state, agent, action);
