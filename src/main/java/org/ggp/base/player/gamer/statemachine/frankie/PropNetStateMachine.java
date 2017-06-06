@@ -165,6 +165,7 @@ public class PropNetStateMachine extends StateMachine {
     	clearpropnet();
     	propNet.getInitProposition().setValue(true);
     	propNet.getInitProposition().propogate(true);
+
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
 		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
 		for (GdlSentence s : bases.keySet()) {
@@ -172,6 +173,7 @@ public class PropNetStateMachine extends StateMachine {
 				nexts.add(s);
 		}
 		MachineState initial = new MachineState(nexts);
+
 		propNet.getInitProposition().setValue(false);
 		propNet.getInitProposition().propogate(false);
 		return initial;
@@ -185,20 +187,13 @@ public class PropNetStateMachine extends StateMachine {
             throws MoveDefinitionException {
     	//System.out.println("findActions");
     	Set<Proposition> legals = propNet.getLegalPropositions().get(role);
-    	return propToMoves(legals, true);
+    	List<Move> moves = new ArrayList<Move>(legals.size());
+		for (Proposition p : legals) {
+			moves.add(getMoveFromProposition(p));
+		}
+		return moves;
     }
 
-    private List<Move> propToMoves(Set<Proposition> set, boolean any) {
-		List<Move> moves = new ArrayList<Move>(set.size());
-		//System.out.println("propToMoves: " + set.size());
-		for (Proposition p : set) {
-			if (any || markpropv(p)) {
-				moves.add(getMoveFromProposition(p));
-			}
-		}
-		//System.out.println("LegalMoves: " + moves.size());
-		return moves;
-	}
     private boolean markpropv(Proposition p){
     	Component input = p.getSingleInput();
     	if(constants.contains(input)) return input.getValue();
@@ -211,12 +206,17 @@ public class PropNetStateMachine extends StateMachine {
     @Override
     public List<Move> getLegalMoves(MachineState state, Role role)
             throws MoveDefinitionException {
-    	//System.out.println("getLegalMoves: " + role.toString());
     	clearpropnet();	// For some stupid reason, necessary for multithreading
     	markbases(state.getContents());
     	Map<Role, Set<Proposition>> legalPropositions = propNet.getLegalPropositions();
     	Set<Proposition> legals = legalPropositions.get(role);
-		return propToMoves(legals, false);
+		List<Move> moves = new ArrayList<Move>(legals.size());
+		for (Proposition p : legals) {
+			if (markpropv(p)) {
+				moves.add(getMoveFromProposition(p));
+			}
+		}
+		return moves;
     }
 
     /**

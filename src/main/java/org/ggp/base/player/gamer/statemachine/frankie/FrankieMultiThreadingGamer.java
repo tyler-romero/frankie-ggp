@@ -3,6 +3,12 @@ package org.ggp.base.player.gamer.statemachine.frankie;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.ggp.base.player.gamer.event.GamerSelectedMoveEvent;
 import org.ggp.base.util.statemachine.Move;
@@ -11,7 +17,6 @@ import org.ggp.base.util.statemachine.StateMachine;
 import org.ggp.base.util.statemachine.exceptions.GoalDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.MoveDefinitionException;
 import org.ggp.base.util.statemachine.exceptions.TransitionDefinitionException;
-import org.ggp.base.util.statemachine.implementation.prover.ProverStateMachine;
 
 public class FrankieMultiThreadingGamer extends FrankieGamer {
 
@@ -53,26 +58,26 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		turn = 0;
 
 		// Initialize statemachines for other threads
+		ExecutorService executor = Executors.newFixedThreadPool(nThreads/2);
+		CompletionService<StateMachine> completionService = new ExecutorCompletionService<StateMachine>(executor);
+
 		machines = new ArrayList<StateMachine>();
 		for(int i = 0; i<nThreads; i++){
-			StateMachine sm = null;
-
-			System.out.println("Creating instance of "+ statemachinetype);
-			if(statemachinetype == "PropNetStateMachine"){
-				sm = new PropNetStateMachine();
-			}
-			else if (statemachinetype == "ProverStateMachine"){
-				sm = new ProverStateMachine();
-			}
-			else if (statemachinetype == "SimplePropNetStateMachine"){
-				sm = new SimplePropNetStateMachine();
-			}
-			else assert(false);
-
-			sm.initialize(getMatch().getGame().getRules());
-			machines.add(sm);
-			if(timer.isOutOfTime()) break;
+			PropNetInitThread propThread = new PropNetInitThread(statemachinetype, getMatch().getGame().getRules());
+			completionService.submit(propThread);
 		}
+
+		try {
+            for (int i = 0;  i < nThreads; i++) {
+                Future<StateMachine> fRave = completionService.take();	//take is a blocking method
+                machines.add(fRave.get());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
 		nThreads = machines.size();
 		System.out.println("nThreads: " + nThreads);
 
@@ -81,7 +86,6 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		else System.out.println("Single-Player Game");
 
 		searchFn = new RootMultiThreadedMonteCarloTreeSearch(stateMachine, agent, timer, machines);
-		//searchFn = new MultiThreadedRAVEMonteCarloTreeSearch(stateMachine, agent, timer, machines);
 
 		// Start computing the game tree during meta game
 		searchFn.metaGame(getCurrentState());
