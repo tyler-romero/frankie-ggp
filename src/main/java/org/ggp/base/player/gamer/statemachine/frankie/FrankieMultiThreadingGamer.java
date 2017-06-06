@@ -39,7 +39,7 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 2;
+		nThreads = 8;
 
 		// Start Timer
 		long finishBy = timeout - metagamebuffer;
