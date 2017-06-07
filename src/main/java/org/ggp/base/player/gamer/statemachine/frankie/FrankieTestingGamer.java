@@ -41,7 +41,7 @@ public class FrankieTestingGamer extends FrankieGamer {
 		// Configure Settings
 		buffer = 4500;
 		long metagamebuffer = 6000;
-		nThreads = 2;
+		nThreads = 0;
 		boolean useSpeedTestToDetermineThreads = true;
 		int speedTestDuration = 5000;
 
@@ -61,6 +61,7 @@ public class FrankieTestingGamer extends FrankieGamer {
 			if(chargesPerSec > 100) nThreads = 1;
 			else nThreads = 2;
 		}
+		nThreads = 1;
 
 		// Initialize statemachines for other threads
 		System.out.println("nThreads: " + nThreads);

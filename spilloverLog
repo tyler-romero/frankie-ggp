@@ -1,0 +1,11 @@
+LOG 1493176078514 [L3]: [PROXY] Starting a new proxy client, using gamer RandomGamer.
+LOG 1493176078646 [L9]: <ERR> java.io.IOException: Cannot run program "/System/Library/Frameworks/JavaVM.framework/Versions/1.6.0/Commands/java": error=2, No such file or directory
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1048)
+	at org.ggp.base.player.proxy.ProxyGamePlayer$ClientManager.<init>(ProxyGamePlayer.java:115)
+	at org.ggp.base.player.proxy.ProxyGamePlayer.run(ProxyGamePlayer.java:290)
+Caused by: java.io.IOException: error=2, No such file or directory
+	at java.lang.UNIXProcess.forkAndExec(Native Method)
+	at java.lang.UNIXProcess.<init>(UNIXProcess.java:247)
+	at java.lang.ProcessImpl.start(ProcessImpl.java:134)
+	at java.lang.ProcessBuilder.start(ProcessBuilder.java:1029)
+	... 2 more

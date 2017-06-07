@@ -65,6 +65,8 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		System.out.println("Current Moves = " + stateMachine.getLegalMoves(currentState, agent));
 		assert(currentState != null);
 
+		performSpeedTest(10000);
+
 		Node root = searchFn.getRoot(currentState);
 		searchFn.MCTS(root);
 		System.out.println("Number of Initial Depth Charges: " + root.visits);
@@ -72,6 +74,22 @@ public class FrankieUniversalGamer extends FrankieGamer {
 		if(timer.isExpired()){
 			System.out.println("METAGAMING TIMER IS EXPIRED");
 		}
+	}
+	public double performSpeedTest(int duration) throws TransitionDefinitionException, MoveDefinitionException{
+		System.out.println("Performing speed test");
+		long start = System.currentTimeMillis();	// Start timer
+		long testTime = start + duration;
+		Timer speedTestTimer = new Timer();
+		speedTestTimer.initTimer(0, testTime);
+		int count = 0;
+		while(!speedTestTimer.isOutOfTime()) {
+			count ++;
+			stateMachine.performDepthChargeLite(getCurrentState());
+		}
+		double chargesPerSec = count * (1000.0/(double)duration);
+		System.out.println("Charges Per Second: " + chargesPerSec);
+
+		return chargesPerSec;
 	}
 
 	// ----- Select Move ----- //
