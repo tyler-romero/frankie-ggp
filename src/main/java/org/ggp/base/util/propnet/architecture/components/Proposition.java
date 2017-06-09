@@ -53,11 +53,8 @@ public final class Proposition extends Component {
 	public void propogate(boolean newValue) {
 		if (base) return;
 		value = newValue;
-		if (value != lastPropogation) {
-			lastPropogation = value;
-			for (Component c : getOutputarr()){
-				c.propogate(value);
-			}
+		for (Component c : getOutputarr()){
+			c.propogate(value);
 		}
 	}
 
@@ -84,8 +81,8 @@ public final class Proposition extends Component {
 		file.append("}\n");
 	}
 
-	public void startPropogate() {
-		lastPropogation = value;
+	public void start() {
+		last = value;
 		for (Component c : getOutputarr()){
 			c.propogate(value);
 		}
@@ -99,7 +96,7 @@ public final class Proposition extends Component {
 
 	@Override
 	public void reset() {
-		lastPropogation = false;
+		last = false;
 		value = false;
 		isValid = false;
 	}

@@ -18,12 +18,11 @@ public final class And extends Component
      * @see org.ggp.base.util.propnet.architecture.Component#getValue()
      */
     @Override
-    public void propogate(boolean newValue)
-    {
+    public void propogate(boolean newValue) {
     	numTrue += (newValue)? 1 : -1;
     	value = (numTrue == getInputarr().length) ^ nand;
-        if (value != lastPropogation) {
-			lastPropogation = value;
+        if (value != last) {
+			last = value;
 			for (Component c : getOutputarr()){
 				c.propogate(value);
 			}
@@ -63,7 +62,7 @@ public final class And extends Component
     @Override
 	public void reset() {
 		value = false;
-		lastPropogation = false;
+		last = false;
 		numTrue = 0;
 		isValid = false;
 	}

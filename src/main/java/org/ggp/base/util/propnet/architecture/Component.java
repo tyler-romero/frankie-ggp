@@ -15,10 +15,12 @@ import org.ggp.base.util.propnet.architecture.components.Proposition;
 
 public abstract class Component implements Serializable
 {
-
-	protected boolean value = false;
-	private static final long serialVersionUID = 352524175700224447L;
 	public boolean isValid = false;
+	protected boolean value = false;
+	protected boolean last = false;
+
+	private static final long serialVersionUID = 352524175700224447L;
+
 	/** The inputs to the component. */
 	private Set<Component> inputs;
 	/** The outputs of the component. */
@@ -26,8 +28,6 @@ public abstract class Component implements Serializable
 
 	private Component[] inputarr;
 	private Component[] outputarr;
-
-	protected boolean lastPropogation = false;
 
 	/**
 	 * Creates a new Component with no inputs or outputs.

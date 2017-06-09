@@ -27,8 +27,8 @@ public final class Not extends Component
 	@Override
 	public void propogate(boolean newValue) {
 		value = !getSingleInputarr().getValue();
-		if (value != lastPropogation) {
-			lastPropogation = value;
+		if (value != last) {
+			last = value;
 			for (Component c : getOutputarr()){
 				c.propogate(value);
 			}
@@ -59,7 +59,7 @@ public final class Not extends Component
 
 	@Override
 	public void reset() {
-		lastPropogation = false;
+		last = false;
 		value = false;
 		isValid = false;
 	}

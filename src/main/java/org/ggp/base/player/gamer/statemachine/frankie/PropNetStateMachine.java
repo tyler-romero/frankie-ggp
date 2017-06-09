@@ -39,8 +39,8 @@ public class PropNetStateMachine extends StateMachine {
     private List<Role> roles;
 
     // Takes advantage of locality between states
-    private Set<GdlSentence> lastBases;
-	private Set<GdlSentence> lastInputs;
+    private Set<GdlSentence> prevBases;
+	private Set<GdlSentence> prevInputs;
 
 	private Set<Component> constants = new HashSet<Component>();
 	public List<Gdl> description;
@@ -70,8 +70,8 @@ public class PropNetStateMachine extends StateMachine {
     }
 
     private void initPropnetVars(){
-    	lastBases = new HashSet<GdlSentence>();
-		lastInputs = new HashSet<GdlSentence>();
+    	prevBases = new HashSet<GdlSentence>();
+		prevInputs = new HashSet<GdlSentence>();
 		Collection<Proposition> bases = propNet.getBasePropositions().values();
 		Collection<Proposition> inputs = propNet.getInputPropositions().values();
 		for (Proposition p : propNet.getPropositions()) {
@@ -314,39 +314,39 @@ public class PropNetStateMachine extends StateMachine {
 
     // Helper Functions. Pseudo code from chapter 10
     private void markbases(Set<GdlSentence> contents){
-    	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(lastBases);
+    	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(prevBases);
 		Set<GdlSentence> nowTrue = new HashSet<GdlSentence>(contents);
 		nowFalse.removeAll(contents);
-		nowTrue.removeAll(lastBases);
+		nowTrue.removeAll(prevBases);
 
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
 
 		for (GdlSentence p : nowFalse) {
 			bases.get(p).setValue(false);
-			bases.get(p).startPropogate();
+			bases.get(p).start();
 		}
 		for (GdlSentence p : nowTrue) {
 			bases.get(p).setValue(true);
-			bases.get(p).startPropogate();
+			bases.get(p).start();
 		}
-		lastBases = contents;
+		prevBases = contents;
     }
 
     private void markactions(Set<GdlSentence> does){
-    	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(lastInputs);
+    	Set<GdlSentence> nowFalse = new HashSet<GdlSentence>(prevInputs);
 		Set<GdlSentence> nowTrue = new HashSet<GdlSentence>(does);
 		nowFalse.removeAll(does);
-		nowTrue.removeAll(lastInputs);
+		nowTrue.removeAll(prevInputs);
 		Map<GdlSentence, Proposition> bases = propNet.getInputPropositions();
 		for (GdlSentence p : nowFalse) {
 			bases.get(p).setValue(false);
-			bases.get(p).startPropogate();
+			bases.get(p).start();
 		}
 		for (GdlSentence p : nowTrue) {
 			bases.get(p).setValue(true);
-			bases.get(p).startPropogate();
+			bases.get(p).start();
 		}
-		lastInputs = does;
+		prevInputs = does;
     }
 
     private void clearpropnet(){
@@ -358,8 +358,8 @@ public class PropNetStateMachine extends StateMachine {
 		for (Component s : nots) {
 			s.propogate(true);
 		}
-		lastBases = new HashSet<GdlSentence>();
-		lastInputs = new HashSet<GdlSentence>();
+		prevBases = new HashSet<GdlSentence>();
+		prevInputs = new HashSet<GdlSentence>();
     }
 
     // Helpers from piazza
@@ -393,13 +393,6 @@ public class PropNetStateMachine extends StateMachine {
                 return;
             }
         }
-        /*
-        for (GdlLiteral lit : rule.getBody()) {
-            if (lit instanceof GdlDistinct) {
-                System.out.println("distinct rule added: " + rule);
-                break;
-            }
-        }*/
         out.add(rule);
     }
 

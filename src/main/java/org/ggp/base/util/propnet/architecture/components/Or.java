@@ -10,7 +10,6 @@ import org.ggp.base.util.propnet.architecture.Component;
 @SuppressWarnings("serial")
 public final class Or extends Component
 {
-	public boolean nor = false;
 	int numTrue = 0;
     /**
      * Returns true if and only if at least one of the inputs to the or is true.
@@ -21,18 +20,16 @@ public final class Or extends Component
     public void propogate(boolean newValue)
     {
     	numTrue += (newValue)? 1 : -1;
-    	value = (numTrue != 0) ^ nor;
-        for ( Component component : getInputarr())
-        {
-            if ( component.getValue() )
-            {
+    	value = (numTrue != 0);
+        for (Component component : getInputarr()) {
+            if (component.getValue()) {
                 value = true;
                 break;
             }
         }
-        if (value != lastPropogation) {
-			lastPropogation = value;
-			for (Component c : getOutputarr()){
+        if (value != last) {
+			last = value;
+			for (Component c : getOutputarr()) {
 				c.propogate(value);
 			}
 		}
@@ -70,7 +67,7 @@ public final class Or extends Component
     @Override
 	public void reset() {
 		value = false;
-		lastPropogation = false;
+		last = false;
 		numTrue = 0;
 		isValid = false;
 	}

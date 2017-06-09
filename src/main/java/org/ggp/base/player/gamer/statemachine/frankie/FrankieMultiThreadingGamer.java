@@ -42,9 +42,9 @@ public class FrankieMultiThreadingGamer extends FrankieGamer {
 		System.out.println(getName());	// Print the agent's name
 
 		// Configure Settings
-		buffer = 5000;
-		long metagamebuffer = 7000;
-		nThreads = 30;
+		buffer = 4500;
+		long metagamebuffer = 6000;
+		nThreads = 2;
 
 		// Start Timer
 		long finishBy = timeout - metagamebuffer;
