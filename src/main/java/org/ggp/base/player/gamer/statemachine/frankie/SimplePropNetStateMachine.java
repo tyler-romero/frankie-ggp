@@ -167,7 +167,7 @@ public class SimplePropNetStateMachine extends StateMachine {
 		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
 
 		for (GdlSentence s : bases.keySet()) {
-			if (bases.get(s).getSingleInputarr().propmark()) nexts.add(s);
+			if (bases.get(s).getSingleInputC().propmark()) nexts.add(s);
 		}
 		return new MachineState(nexts);
     }
@@ -230,7 +230,7 @@ public class SimplePropNetStateMachine extends StateMachine {
     public MachineState getStateFromBase() {
     	Set<GdlSentence> contents = new HashSet<GdlSentence>();
         for (Proposition p : propNet.getBasePropositions().values()) {
-            if (p.getSingleInputarr().propmark()){
+            if (p.getSingleInputC().propmark()){
                 contents.add(p.getName());
             }
         }

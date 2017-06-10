@@ -24,6 +24,23 @@ public final class Constant extends Component
         this.value = value;
     }
 
+	@Override
+	public void clear() {
+		isValid = false;
+	}
+
+	@Override
+	public void diffProp(boolean newValue) {
+		for (Component c : getOutputC()) {
+			c.diffProp(value);
+		}
+	}
+
+	@Override
+   	public boolean propmark(){
+		return value;
+    }
+
     /**
      * Returns the value that the constant was initialized to.
      *
@@ -45,26 +62,9 @@ public final class Constant extends Component
     }
 
 	@Override
-	public void reset() {
-		isValid = false;
-	}
-
-	@Override
-	public void propogate(boolean newValue) {
-		for (Component c : getOutputarr()) {
-			c.propogate(value);
-		}
-	}
-
-	@Override
-   	public boolean propmark(){
-		return value;
-    }
-
-	@Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
 		file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
-		for (Component c : getOutputarr()) {
+		for (Component c : getOutputC()) {
 			file.append("propagate" + comps.indexOf(c) + "(comps[" + comps.indexOf(this) + "]);\n");
 		}
 		file.append("}\n");

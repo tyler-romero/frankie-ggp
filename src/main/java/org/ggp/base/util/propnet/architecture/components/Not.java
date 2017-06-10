@@ -15,41 +15,40 @@ public final class Not extends Component
 		value = false;
 	}
 
-	/**
-	 * @see org.ggp.base.util.propnet.architecture.Component#toString()
-	 */
 	@Override
-	public String toString()
-	{
-		return toDot("invtriangle", "grey", "NOT");
-	}
+   	public boolean propmark(){
+		Component c = getSingleInputC();
+       	return !c.propmark();
+    }
 
 	@Override
-	public void propogate(boolean newValue) {
-		value = !getSingleInputarr().getValue();
+	public void diffProp(boolean newValue) {
+		value = !getSingleInputC().getValue();
 		if (value != last) {
 			last = value;
-			for (Component c : getOutputarr()){
-				c.propogate(value);
+			for (Component c : getOutputC()){
+				c.diffProp(value);
 			}
 		}
 	}
 
 	@Override
-   	public boolean propmark(){
-		Component c = getSingleInputarr();
-       	return !c.propmark();
-    }
+	public void clear() {
+		last = false;
+		value = false;
+		isValid = false;
+	}
+
 
 	@Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
 		file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
 		file.append("boolean next = ");
-		file.append("!comps[" + comps.indexOf(getSingleInputarr()) + "];\n");
+		file.append("!comps[" + comps.indexOf(getSingleInputC()) + "];\n");
 
 		file.append("if (next != comps[" + comps.indexOf(this) + "]){\n");
 		file.append("comps[" + comps.indexOf(this) + "] = next;\n");
-		for (Component c : getOutputarr()) {
+		for (Component c : getOutputC()) {
 			file.append("propagate" + comps.indexOf(c) + "(next);\n");
 		}
 		file.append("}\n");
@@ -57,10 +56,12 @@ public final class Not extends Component
 		file.append("}\n");
 	}
 
+	/**
+	 * @see org.ggp.base.util.propnet.architecture.Component#toString()
+	 */
 	@Override
-	public void reset() {
-		last = false;
-		value = false;
-		isValid = false;
+	public String toString()
+	{
+		return toDot("invtriangle", "grey", "NOT");
 	}
 }

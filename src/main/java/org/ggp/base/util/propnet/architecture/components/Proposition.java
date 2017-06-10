@@ -50,18 +50,18 @@ public final class Proposition extends Component {
 	 * @see org.ggp.base.util.propnet.architecture.Component#getValue()
 	 */
 	@Override
-	public void propogate(boolean newValue) {
+	public void diffProp(boolean newValue) {
 		if (base) return;
 		value = newValue;
-		for (Component c : getOutputarr()){
-			c.propogate(value);
+		for (Component c : getOutputC()){
+			c.diffProp(value);
 		}
 	}
 
 	@Override
    	public boolean propmark(){
 		if (base) return value;
-		Component c = getSingleInputarr();
+		Component c = getSingleInputC();
 		return c.propmark();
     }
 
@@ -74,7 +74,7 @@ public final class Proposition extends Component {
 		}
 		file.append("if (newValue != comps[" + comps.indexOf(this) + "]){\n");
 		file.append("comps[" + comps.indexOf(this) + "] = newValue;\n");
-		for (Component c : getOutputarr()) {
+		for (Component c : getOutputC()) {
 			file.append("propagate" + comps.indexOf(c) + "(newValue);\n");
 		}
 		file.append("}\n");
@@ -83,19 +83,19 @@ public final class Proposition extends Component {
 
 	public void start() {
 		last = value;
-		for (Component c : getOutputarr()){
-			c.propogate(value);
+		for (Component c : getOutputC()){
+			c.diffProp(value);
 		}
 	}
 
 	public void startFlood() {
-		for (Component c: getOutputarr()){
+		for (Component c: getOutputC()){
 			c.flood();
 		}
 	}
 
 	@Override
-	public void reset() {
+	public void clear() {
 		last = false;
 		value = false;
 		isValid = false;

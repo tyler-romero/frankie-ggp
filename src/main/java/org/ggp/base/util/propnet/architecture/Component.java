@@ -26,8 +26,8 @@ public abstract class Component implements Serializable
 	/** The outputs of the component. */
 	private Set<Component> outputs;
 
-	private Component[] inputarr;
-	private Component[] outputarr;
+	private Component[] input_array;
+	private Component[] output_array;
 
 	/**
 	 * Creates a new Component with no inputs or outputs.
@@ -39,10 +39,10 @@ public abstract class Component implements Serializable
 	}
 
 	public void crystalize() {
-		inputarr = new Component[inputs.size()];
-		inputs.toArray(inputarr);
-		outputarr = new Component[outputs.size()];
-		outputs.toArray(outputarr);
+		input_array = new Component[inputs.size()];
+		inputs.toArray(input_array);
+		output_array = new Component[outputs.size()];
+		outputs.toArray(output_array);
 	}
 
 	/**
@@ -59,10 +59,10 @@ public abstract class Component implements Serializable
 	public void flood(){
 		if (isValid) return;
 		isValid = true;
-		for (Component c : getInputarr()){
+		for (Component c : getInputC()){
 			c.flood();
 		}
-		for (Component c : getOutputarr()){
+		for (Component c : getOutputC()){
 			c.flood();
 		}
 	}
@@ -110,13 +110,13 @@ public abstract class Component implements Serializable
 		return inputs;
 	}
 
-	public Component[] getInputarr() {
-		return inputarr;
+	public Component[] getInputC() {
+		return input_array;
 	}
 
-	public Component getSingleInputarr() {
-		if(inputarr.length != 1){
-			System.out.println("Input size is not 1 (it is size " + inputarr.length + ")");
+	public Component getSingleInputC() {
+		if(input_array.length != 1){
+			System.out.println("Input size is not 1 (it is size " + input_array.length + ")");
 			if(this instanceof Proposition){
 				System.out.println("This is a proposition with name " + ((Proposition)this).getName());
 				if(((Proposition)this).base){
@@ -124,7 +124,7 @@ public abstract class Component implements Serializable
 				}
 			}
 		}
-		return inputarr[0];
+		return input_array[0];
 	}
 
 
@@ -162,13 +162,13 @@ public abstract class Component implements Serializable
 		return outputs.iterator().next();
 	}
 
-	public Component[] getOutputarr() {
-		return outputarr;
+	public Component[] getOutputC() {
+		return output_array;
 	}
 
-	public Component getSingleOutputarr() {
-		assert outputarr.length == 1;
-		return outputarr[0];
+	public Component getSingleOutputC() {
+		assert output_array.length == 1;
+		return output_array[0];
 	}
 
 	/**
@@ -180,8 +180,9 @@ public abstract class Component implements Serializable
 		return value;
 	}
 
-	public abstract void propogate(boolean newValue);
 	public abstract boolean propmark();
+	public abstract void diffProp(boolean newValue);
+	public abstract void clear();
 
 
 	/**
@@ -192,7 +193,6 @@ public abstract class Component implements Serializable
 	@Override
 	public abstract String toString();
 
-	public abstract void reset();
 
 	/**
 	 * Returns a configurable representation of the Component in .dot format.

@@ -43,7 +43,6 @@ public class PropNetStateMachine extends StateMachine {
 	private Set<GdlSentence> prevInputs;
 
 	private Set<Component> constants = new HashSet<Component>();
-	public List<Gdl> description;
 
     /**
      * Initializes the PropNetStateMachine. You should compute the topological
@@ -58,7 +57,7 @@ public class PropNetStateMachine extends StateMachine {
 
 			for (Component c : propNet.getComponents()) {
 				c.crystalize();
-				if(c instanceof Constant && c.getInputarr().length<1) constants.add(c);
+				if(c instanceof Constant && c.getInputC().length<1) constants.add(c);
 			}
 			roles = propNet.getRoles();
 
@@ -75,7 +74,10 @@ public class PropNetStateMachine extends StateMachine {
 		Collection<Proposition> bases = propNet.getBasePropositions().values();
 		Collection<Proposition> inputs = propNet.getInputPropositions().values();
 		for (Proposition p : propNet.getPropositions()) {
-			if (bases.contains(p) || inputs.contains(p)) {
+			if (bases.contains(p)) {
+				p.base = true;
+			}
+			if(inputs.contains(p)){
 				p.base = true;
 			}
 		}
@@ -107,7 +109,6 @@ public class PropNetStateMachine extends StateMachine {
 		}
     	propNet.renderToFile("factoredProp.dot");
     	System.out.println("Factored Size: " + propNet.getSize());
-    	Set<Proposition> faclegals = propNet.getLegalPropositions().get(roles.get(0));
     	initPropnetVars();
     	try {
 			System.out.println("Factored moves: " + findActions(roles.get(0)) );
@@ -119,11 +120,9 @@ public class PropNetStateMachine extends StateMachine {
     	return initial - propNet.getSize();
     }
 
-
     public int getNumComponents(){
     	return propNet.getSize();
     }
-
 
     /**
      * Computes if the state is terminal. Should return the value
@@ -164,18 +163,18 @@ public class PropNetStateMachine extends StateMachine {
     	//System.out.println("GetInitialState");
     	clearpropnet();
     	propNet.getInitProposition().setValue(true);
-    	propNet.getInitProposition().propogate(true);
+    	propNet.getInitProposition().diffProp(true);
 
 		Map<GdlSentence, Proposition> bases = propNet.getBasePropositions();
 		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
 		for (GdlSentence s : bases.keySet()) {
-			if (bases.get(s).getSingleInputarr().getValue())
+			if (bases.get(s).getSingleInputC().getValue())
 				nexts.add(s);
 		}
 		MachineState initial = new MachineState(nexts);
 
 		propNet.getInitProposition().setValue(false);
-		propNet.getInitProposition().propogate(false);
+		propNet.getInitProposition().diffProp(false);
 		return initial;
     }
 
@@ -196,7 +195,8 @@ public class PropNetStateMachine extends StateMachine {
 
     private boolean markpropv(Proposition p){
     	Component input = p.getSingleInput();
-    	if(constants.contains(input)) return input.getValue();
+    	if(constants.contains(input))
+    		return input.getValue();
     	return p.getValue();
     }
 
@@ -232,7 +232,7 @@ public class PropNetStateMachine extends StateMachine {
 		Set<GdlSentence> nexts = new HashSet<GdlSentence>();
 
 		for (GdlSentence s : bases.keySet()) {
-			if (bases.get(s).getSingleInputarr().getValue()) nexts.add(s);
+			if (bases.get(s).getSingleInputC().getValue()) nexts.add(s);
 		}
 		return new MachineState(nexts);
     }
@@ -352,11 +352,11 @@ public class PropNetStateMachine extends StateMachine {
     private void clearpropnet(){
     	Set<Component> nots = new HashSet<Component>();
 		for (Component s : propNet.getComponents()) {
-			s.reset();
+			s.clear();
 			if (s instanceof Not) nots.add(s);
 		}
 		for (Component s : nots) {
-			s.propogate(true);
+			s.diffProp(true);
 		}
 		prevBases = new HashSet<GdlSentence>();
 		prevInputs = new HashSet<GdlSentence>();

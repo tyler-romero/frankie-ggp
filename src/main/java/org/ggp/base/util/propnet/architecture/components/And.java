@@ -10,28 +10,11 @@ import org.ggp.base.util.propnet.architecture.Component;
 @SuppressWarnings("serial")
 public final class And extends Component
 {
-	public boolean nand = false;
 	int numTrue = 0;
-    /**
-     * Returns true if and only if every input to the and is true.
-     *
-     * @see org.ggp.base.util.propnet.architecture.Component#getValue()
-     */
-    @Override
-    public void propogate(boolean newValue) {
-    	numTrue += (newValue)? 1 : -1;
-    	value = (numTrue == getInputarr().length) ^ nand;
-        if (value != last) {
-			last = value;
-			for (Component c : getOutputarr()){
-				c.propogate(value);
-			}
-		}
-    }
 
     @Override
 	public boolean propmark(){
-    	for (Component c : getInputarr()){
+    	for (Component c : getInputC()){
     		if (!c.propmark()){
     			return false;
     		}
@@ -40,32 +23,47 @@ public final class And extends Component
     }
 
     @Override
+    public void diffProp(boolean newValue) {
+    	if(newValue) numTrue += 1;
+    	else numTrue -= 1;
+    	if(numTrue == getInputC().length) value = true;
+    	else value = false;
+
+        if (value != last) {
+			last = value;
+			for (Component c : getOutputC()){
+				c.diffProp(value);
+			}
+		}
+    }
+
+    @Override
+	public void clear() {
+		value = false;
+		last = false;
+		numTrue = 0;
+		isValid = false;
+	}
+
+    @Override
 	public void makeMethod(StringBuilder file, List<Component> comps) {
     	file.append("private void propagate" + comps.indexOf(this) + "(boolean newValue){\n");
     	file.append("boolean next = ");
-    	file.append("comps[" + comps.indexOf(getInputarr()[0]) + "]");
-    	for (int i = 1; i < getInputarr().length; i ++) {
-    		file.append(" && comps[" + comps.indexOf(getInputarr()[i]) + "]");
+    	file.append("comps[" + comps.indexOf(getInputC()[0]) + "]");
+    	for (int i = 1; i < getInputC().length; i ++) {
+    		file.append(" && comps[" + comps.indexOf(getInputC()[i]) + "]");
     	}
     	file.append(";\n");
 
     	file.append("if (next != comps[" + comps.indexOf(this) + "]){\n");
 		file.append("comps[" + comps.indexOf(this) + "] = next;\n");
-		for (Component c : getOutputarr()) {
+		for (Component c : getOutputC()) {
 			file.append("propagate" + comps.indexOf(c) + "(next);\n");
 		}
 		file.append("}\n");
 
     	file.append("}\n");
     }
-
-    @Override
-	public void reset() {
-		value = false;
-		last = false;
-		numTrue = 0;
-		isValid = false;
-	}
 
     /**
      * @see org.ggp.base.util.propnet.architecture.Component#toString()
